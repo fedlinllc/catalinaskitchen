@@ -29,7 +29,7 @@ const related = allRecipes
 
 <RecipeLayout recipe={recipe}>
   {related.length > 0 && (
-    <section class="mt-16 pt-12 border-t border-[#DDC9A0]">
+    <section class="mt-16 pt-12 border-t border-[#d4c8bc]">
       <h2 class="font-display text-2xl mb-6">More {recipe.fields.category} Recipes</h2>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
         {related.map((r) => <RecipeCard recipe={r} />)}

@@ -34,10 +34,10 @@ const categoryTiles = [
 
     <!-- Page header -->
     <div class="text-center mb-10">
-      <h1 class="font-display text-4xl md:text-5xl text-[#3D2B0F] mb-3">
+      <h1 class="font-display text-4xl md:text-5xl text-[#0a0a0a] mb-3">
         {categoryLabel ? `${categoryLabel} Recipes` : "All Recipes"}
       </h1>
-      <p class="text-[#5C3D1E] max-w-xl mx-auto">
+      <p class="text-[#2a2a2a] max-w-xl mx-auto">
         Discover flavorful, healthy recipes inspired by cuisines from around the world.
       </p>
     </div>
@@ -68,7 +68,7 @@ const categoryTiles = [
     <!-- Back link when filtering -->
     {validCategory && (
       <div class="mb-8">
-        <a href="/recipes" class="text-sm text-[#A06820] hover:underline">← All Recipes</a>
+        <a href="/recipes" class="text-sm text-[#111111] hover:underline">← All Recipes</a>
       </div>
     )}
 
@@ -80,7 +80,7 @@ const categoryTiles = [
         ))}
       </div>
     ) : (
-      <p class="text-center text-[#5C3D1E] py-20">
+      <p class="text-center text-[#2a2a2a] py-20">
         Recipes coming soon. Check back after the Contentful import.
       </p>
     )}

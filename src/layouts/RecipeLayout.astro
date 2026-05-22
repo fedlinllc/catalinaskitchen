@@ -48,12 +48,12 @@ const recipeSchema = {
 
   <article class="max-w-3xl mx-auto px-4 py-12">
     <header class="mb-8">
-      <span class="text-sm uppercase tracking-widest text-[#A06820] font-semibold">
+      <span class="text-sm uppercase tracking-widest text-[#111111] font-semibold">
         {category}
       </span>
       <h1 class="font-display text-4xl md:text-5xl mt-2 mb-4">{title}</h1>
-      {excerpt && <p class="text-lg text-[#5C3D1E] leading-relaxed">{excerpt}</p>}
-      <p class="text-sm text-[#5C3D1E] mt-3">
+      {excerpt && <p class="text-lg text-[#2a2a2a] leading-relaxed">{excerpt}</p>}
+      <p class="text-sm text-[#2a2a2a] mt-3">
         By Jaime Esquivel &middot;{" "}
         {new Date(publishedDate as string).toLocaleDateString("en-US", {
           year: "numeric",
@@ -75,11 +75,11 @@ const recipeSchema = {
 
     <div class="grid md:grid-cols-2 gap-8 mb-12">
       <section>
-        <h2 class="font-display text-2xl mb-4 border-b border-[#DDC9A0] pb-2">Ingredients</h2>
+        <h2 class="font-display text-2xl mb-4 border-b border-[#d4c8bc] pb-2">Ingredients</h2>
         <div class="prose-catalina" set:html={ingredientsHtml} />
       </section>
       <section>
-        <h2 class="font-display text-2xl mb-4 border-b border-[#DDC9A0] pb-2">Instructions</h2>
+        <h2 class="font-display text-2xl mb-4 border-b border-[#d4c8bc] pb-2">Instructions</h2>
         <div class="prose-catalina" set:html={instructionsHtml} />
       </section>
     </div>

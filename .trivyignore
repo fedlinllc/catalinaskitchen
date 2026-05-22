@@ -1,0 +1,2 @@
+# Add CVE exceptions here with justification, e.g.:
+# CVE-2024-XXXXX  # Reason: only affects server-side code path not used in this SSG build

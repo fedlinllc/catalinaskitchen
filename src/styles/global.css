@@ -5,17 +5,17 @@
 }
 
 @theme {
-  /* Brand palette — warm kitchen tones */
-  --color-primary:       #A06820;
-  --color-primary-dark:  #7A4E15;
-  --color-primary-light: #F2A96E;
-  --color-accent:        #5B8C3E;
-  --color-bg:            #FDF9F2;
-  --color-bg-card:       #F7EDD5;
-  --color-bg-section:    #F5EDDA;
-  --color-text:          #3D2B0F;
-  --color-text-muted:    #5C3D1E;
-  --color-border:        #DDC9A0;
+  /* Palette from live site CSS vars (catalinaskitchen.com Squarespace) */
+  --color-primary:       #111111;   /* black — buttons, active links  */
+  --color-primary-dark:  #333333;   /* hover                          */
+  --color-primary-light: #c2c8cc;   /* accent-hsl 204° 9% 78%        */
+  --color-accent:        #3d4435;   /* darkAccent-hsl 88° 12% 24%    */
+  --color-bg:            #ffffff;
+  --color-bg-card:       #f2ece4;
+  --color-bg-section:    #e7d9cb;
+  --color-text:          #0a0a0a;
+  --color-text-muted:    #2a2a2a;
+  --color-border:        #d4c8bc;
 
   --font-sans:    'Lato', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Playfair Display', Georgia, serif;

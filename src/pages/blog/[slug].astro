@@ -35,7 +35,7 @@ const imageUrl = getImageUrl(post.fields.featuredImage as any);
 >
   <article class="max-w-3xl mx-auto px-4 py-12">
     <header class="mb-8">
-      <p class="text-sm text-[#9A7850] mb-2">
+      <p class="text-sm text-[#6b6b6b] mb-2">
         {new Date(post.fields.publishedDate as string).toLocaleDateString("en-US", {
           year: "numeric",
           month: "long",
@@ -44,7 +44,7 @@ const imageUrl = getImageUrl(post.fields.featuredImage as any);
       </p>
       <h1 class="font-display text-4xl md:text-5xl mb-4">{post.fields.title}</h1>
       {post.fields.excerpt && (
-        <p class="text-lg text-[#5C3D1E] leading-relaxed">{post.fields.excerpt}</p>
+        <p class="text-lg text-[#2a2a2a] leading-relaxed">{post.fields.excerpt}</p>
       )}
     </header>
 
@@ -60,8 +60,8 @@ const imageUrl = getImageUrl(post.fields.featuredImage as any);
 
     <div class="prose-catalina" set:html={contentHtml} />
 
-    <div class="mt-12 pt-6 border-t border-[#DDC9A0]">
-      <a href="/blog" class="text-[#A06820] hover:underline text-sm font-medium">
+    <div class="mt-12 pt-6 border-t border-[#d4c8bc]">
+      <a href="/blog" class="text-[#111111] hover:underline text-sm font-medium">
         ← All Posts
       </a>
     </div>

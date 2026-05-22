@@ -21,8 +21,8 @@ export default function CategoryFilter({ activeCategory }: Props) {
         className={[
           "px-4 py-1.5 rounded-full text-sm font-medium transition-colors border",
           active === "all"
-            ? "bg-[#A06820] text-white border-[#A06820]"
-            : "bg-transparent text-[#5C3D1E] border-[#DDC9A0] hover:border-[#A06820] hover:text-[#A06820]",
+            ? "bg-[#111111] text-white border-[#111111]"
+            : "bg-transparent text-[#2a2a2a] border-[#d4c8bc] hover:border-[#111111] hover:text-[#111111]",
         ].join(" ")}
       >
         All
@@ -34,8 +34,8 @@ export default function CategoryFilter({ activeCategory }: Props) {
           className={[
             "px-4 py-1.5 rounded-full text-sm font-medium transition-colors border",
             active === id
-              ? "bg-[#A06820] text-white border-[#A06820]"
-              : "bg-transparent text-[#5C3D1E] border-[#DDC9A0] hover:border-[#A06820] hover:text-[#A06820]",
+              ? "bg-[#111111] text-white border-[#111111]"
+              : "bg-transparent text-[#2a2a2a] border-[#d4c8bc] hover:border-[#111111] hover:text-[#111111]",
           ].join(" ")}
         >
           {label}

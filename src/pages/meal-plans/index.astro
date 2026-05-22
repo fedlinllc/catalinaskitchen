@@ -12,8 +12,8 @@ const allPlans = await getAllMealPlans();
   <div class="max-w-6xl mx-auto px-4 py-12">
 
     <div class="text-center mb-10">
-      <h1 class="font-display text-4xl md:text-5xl text-[#3D2B0F] mb-3">Meal Plans</h1>
-      <p class="text-[#5C3D1E] max-w-xl mx-auto">
+      <h1 class="font-display text-4xl md:text-5xl text-[#0a0a0a] mb-3">Meal Plans</h1>
+      <p class="text-[#2a2a2a] max-w-xl mx-auto">
         Structured weekly menus to make healthy eating simple and delicious.
       </p>
     </div>
@@ -27,11 +27,11 @@ const allPlans = await getAllMealPlans();
             <a
               href={`/meal-plans/${plan.fields.slug}`}
               class:list={[
-                "group block rounded-2xl overflow-hidden border hover:shadow-md transition-shadow bg-[#F7EDD5]",
-                isCurrent ? "border-[#A06820] ring-2 ring-[#A06820]/20" : "border-[#DDC9A0]",
+                "group block rounded-2xl overflow-hidden border hover:shadow-md transition-shadow bg-[#f2ece4]",
+                isCurrent ? "border-[#111111] ring-2 ring-[#111111]/20" : "border-[#d4c8bc]",
               ]}
             >
-              <div class="relative aspect-[4/3] overflow-hidden bg-[#EDE0C4]">
+              <div class="relative aspect-[4/3] overflow-hidden bg-[#e0d8cc]">
                 {imageUrl ? (
                   <img
                     src={imageUrl}
@@ -45,16 +45,16 @@ const allPlans = await getAllMealPlans();
                   </div>
                 )}
                 {isCurrent && (
-                  <span class="absolute top-3 left-3 bg-[#A06820] text-white text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full">
+                  <span class="absolute top-3 left-3 bg-[#111111] text-white text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full">
                     Current Week
                   </span>
                 )}
               </div>
               <div class="p-5">
-                <h2 class="font-display text-lg text-[#3D2B0F] group-hover:text-[#A06820] transition-colors mb-1">
+                <h2 class="font-display text-lg text-[#0a0a0a] group-hover:text-[#111111] transition-colors mb-1">
                   {plan.fields.title}
                 </h2>
-                <p class="text-xs text-[#9A7850]">
+                <p class="text-xs text-[#6b6b6b]">
                   Week of {new Date(plan.fields.weekOf as string).toLocaleDateString("en-US", {
                     month: "long",
                     day: "numeric",
@@ -67,7 +67,7 @@ const allPlans = await getAllMealPlans();
         })}
       </div>
     ) : (
-      <p class="text-center text-[#5C3D1E] py-20">Meal plans coming soon.</p>
+      <p class="text-center text-[#2a2a2a] py-20">Meal plans coming soon.</p>
     )}
 
   </div>

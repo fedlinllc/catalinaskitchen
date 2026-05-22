@@ -1,0 +1,18 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allowlist for CI fixture values and known public embed keys"
+paths = [
+    "\\.gitleaks\\.toml",
+    "scripts/.*\\.py",
+]
+stopwords = [
+    "ci-placeholder",
+    "placeholder",
+    "your_space_id_here",
+    "your_delivery_api_token_here",
+    "your_preview_api_token_here",
+    # Public Contentful delivery tokens (read-only, space-scoped) appear in docs
+    "ci-test-contentful-token",
+]

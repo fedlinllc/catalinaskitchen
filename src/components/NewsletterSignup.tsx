@@ -21,7 +21,7 @@ export default function NewsletterSignup() {
   if (status === "success") {
     return (
       <div className="text-center py-4">
-        <p className="text-[#5B8C3E] font-medium">You're in! Check your inbox for a confirmation.</p>
+        <p className="text-[#3d4435] font-medium">You're in! Check your inbox for a confirmation.</p>
       </div>
     );
   }
@@ -34,12 +34,12 @@ export default function NewsletterSignup() {
         onChange={(e) => setEmail(e.target.value)}
         placeholder="your@email.com"
         required
-        className="flex-1 px-4 py-2 rounded-lg border border-[#DDC9A0] bg-white text-[#3D2B0F] placeholder-[#9A7850] focus:outline-none focus:ring-2 focus:ring-[#A06820]"
+        className="flex-1 px-4 py-2 rounded-lg border border-[#d4c8bc] bg-white text-[#0a0a0a] placeholder-[#6b6b6b] focus:outline-none focus:ring-2 focus:ring-[#111111]"
       />
       <button
         type="submit"
         disabled={status === "loading"}
-        className="bg-[#A06820] hover:bg-[#7A4E15] disabled:opacity-60 text-white font-medium px-6 py-2 rounded-lg transition-colors whitespace-nowrap"
+        className="bg-[#111111] hover:bg-[#333333] disabled:opacity-60 text-white font-medium px-6 py-2 rounded-lg transition-colors whitespace-nowrap"
       >
         {status === "loading" ? "Subscribing…" : "Subscribe"}
       </button>

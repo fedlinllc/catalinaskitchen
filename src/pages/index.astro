@@ -21,7 +21,7 @@ const categoryTiles = [
   description="Your certified guide to flavorful, bold, healthy, multiculturally inspired cooking. Free recipes, meal plans, and nutrition guidance."
 >
   <!-- Newsletter Banner -->
-  <div class="bg-[#A06820] text-white py-2.5 text-center text-sm font-medium tracking-widest uppercase">
+  <div class="bg-[#111111] text-white py-2.5 text-center text-sm font-medium tracking-widest uppercase">
     Never Miss a Recipe!&nbsp;
     <a href="#newsletter" class="underline underline-offset-2 hover:opacity-80">Subscribe →</a>
   </div>
@@ -59,7 +59,7 @@ const categoryTiles = [
       </p>
       <h1 class="font-display text-5xl md:text-6xl lg:text-7xl text-white leading-tight mb-6 drop-shadow-lg">
         Flavorful, Bold,<br />
-        <span class="text-[#D4A040]">Healthy</span> Cooking.
+        <span class="text-[#e7d9cb]">Healthy</span> Cooking.
       </h1>
       <p class="text-white/80 max-w-xl mx-auto text-lg leading-relaxed mb-10 drop-shadow">
         Multiculturally inspired recipes that help you build a healthier relationship
@@ -68,13 +68,13 @@ const categoryTiles = [
       <div class="flex flex-wrap gap-4 justify-center">
         <a
           href="/recipes"
-          class="bg-[#A06820] hover:bg-[#7A4E15] text-white font-medium px-8 py-3 rounded-xl transition-colors shadow-lg"
+          class="bg-[#111111] hover:bg-[#333333] text-white font-medium px-8 py-3 rounded-xl transition-colors shadow-lg"
         >
           Browse Recipes
         </a>
         <a
           href="/meal-plans"
-          class="border-2 border-white/80 text-white hover:bg-white hover:text-[#3D2B0F] font-medium px-8 py-3 rounded-xl transition-colors backdrop-blur-sm"
+          class="border-2 border-white/80 text-white hover:bg-white hover:text-[#0a0a0a] font-medium px-8 py-3 rounded-xl transition-colors backdrop-blur-sm"
         >
           Meal Plans
         </a>
@@ -96,23 +96,23 @@ const categoryTiles = [
           />
         </div>
         <div>
-          <p class="text-[#A06820] uppercase tracking-widest text-xs font-semibold mb-3">
+          <p class="text-[#111111] uppercase tracking-widest text-xs font-semibold mb-3">
             Nutrition Guidance
           </p>
-          <h2 class="font-display text-3xl md:text-4xl text-[#3D2B0F] mb-6">
+          <h2 class="font-display text-3xl md:text-4xl text-[#0a0a0a] mb-6">
             Improving your relationship with food
           </h2>
           <div class="space-y-6">
             <div>
-              <h3 class="font-semibold text-[#3D2B0F] mb-2">Try something new</h3>
-              <p class="text-[#5C3D1E] leading-relaxed">
+              <h3 class="font-semibold text-[#0a0a0a] mb-2">Try something new</h3>
+              <p class="text-[#2a2a2a] leading-relaxed">
                 Begin exploring your relationship with food by trying any of my free recipes
                 and meal plans. Healthy food should also be delicious.
               </p>
             </div>
             <div>
-              <h3 class="font-semibold text-[#3D2B0F] mb-2">Specific Issues</h3>
-              <p class="text-[#5C3D1E] leading-relaxed">
+              <h3 class="font-semibold text-[#0a0a0a] mb-2">Specific Issues</h3>
+              <p class="text-[#2a2a2a] leading-relaxed">
                 If allergies, illness, or other aversions have complicated your relationship
                 with food, send me a message and I can give you the best option as a
                 replacement for the specific ingredient.
@@ -120,7 +120,7 @@ const categoryTiles = [
             </div>
             <a
               href="/contact"
-              class="inline-block bg-[#A06820] hover:bg-[#7A4E15] text-white font-medium px-6 py-3 rounded-xl transition-colors"
+              class="inline-block bg-[#111111] hover:bg-[#333333] text-white font-medium px-6 py-3 rounded-xl transition-colors"
             >
               Get in Touch
             </a>
@@ -134,8 +134,8 @@ const categoryTiles = [
   {featuredRecipes.length > 0 && (
     <section class="max-w-6xl mx-auto px-4 py-16">
       <div class="flex items-center justify-between mb-8">
-        <h2 class="font-display text-3xl text-[#3D2B0F]">Latest Recipes</h2>
-        <a href="/recipes" class="text-sm text-[#A06820] hover:underline font-medium">View all →</a>
+        <h2 class="font-display text-3xl text-[#0a0a0a]">Latest Recipes</h2>
+        <a href="/recipes" class="text-sm text-[#111111] hover:underline font-medium">View all →</a>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {featuredRecipes.map((recipe) => (
@@ -146,11 +146,11 @@ const categoryTiles = [
   )}
 
   <!-- Newsletter CTA -->
-  <section id="newsletter" class="bg-[#F5EDDA] border-y border-[#DDC9A0]">
+  <section id="newsletter" class="bg-[#e7d9cb] border-y border-[#d4c8bc]">
     <div class="max-w-2xl mx-auto px-4 py-16 text-center">
-      <p class="text-[#A06820] uppercase tracking-widest text-xs font-semibold mb-3">Stay Connected</p>
-      <h2 class="font-display text-3xl text-[#3D2B0F] mb-3">Never Miss a Recipe!</h2>
-      <p class="text-[#5C3D1E] mb-8">
+      <p class="text-[#111111] uppercase tracking-widest text-xs font-semibold mb-3">Stay Connected</p>
+      <h2 class="font-display text-3xl text-[#0a0a0a] mb-3">Never Miss a Recipe!</h2>
+      <p class="text-[#2a2a2a] mb-8">
         Get new recipes, meal plans, and cooking tips delivered to your inbox.
       </p>
       <NewsletterSignup client:load />
