@@ -24,3 +24,4 @@ Thumbs.db
 
 # Scraped content (large; committed separately or via Git LFS if needed)
 scraped/
+.vercel
