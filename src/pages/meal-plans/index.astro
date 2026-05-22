@@ -1,0 +1,74 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getAllMealPlans, getImageUrl } from "../../lib/contentful";
+
+const allPlans = await getAllMealPlans();
+---
+
+<BaseLayout
+  title="Meal Plans"
+  description="Weekly meal plans to help you eat healthy, save time, and discover new flavors. Updated regularly by Catalina's Kitchen."
+>
+  <div class="max-w-6xl mx-auto px-4 py-12">
+
+    <div class="text-center mb-10">
+      <h1 class="font-display text-4xl md:text-5xl text-[#3D2B0F] mb-3">Meal Plans</h1>
+      <p class="text-[#5C3D1E] max-w-xl mx-auto">
+        Structured weekly menus to make healthy eating simple and delicious.
+      </p>
+    </div>
+
+    {allPlans.length > 0 ? (
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {allPlans.map((plan) => {
+          const isCurrent = plan.fields.isCurrent as boolean;
+          const imageUrl = getImageUrl(plan.fields.featuredImage as any);
+          return (
+            <a
+              href={`/meal-plans/${plan.fields.slug}`}
+              class:list={[
+                "group block rounded-2xl overflow-hidden border hover:shadow-md transition-shadow bg-[#F7EDD5]",
+                isCurrent ? "border-[#A06820] ring-2 ring-[#A06820]/20" : "border-[#DDC9A0]",
+              ]}
+            >
+              <div class="relative aspect-[4/3] overflow-hidden bg-[#EDE0C4]">
+                {imageUrl ? (
+                  <img
+                    src={imageUrl}
+                    alt={plan.fields.title as string}
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div class="w-full h-full flex items-center justify-center">
+                    <span class="font-display text-5xl text-[#D4B896]">🥗</span>
+                  </div>
+                )}
+                {isCurrent && (
+                  <span class="absolute top-3 left-3 bg-[#A06820] text-white text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full">
+                    Current Week
+                  </span>
+                )}
+              </div>
+              <div class="p-5">
+                <h2 class="font-display text-lg text-[#3D2B0F] group-hover:text-[#A06820] transition-colors mb-1">
+                  {plan.fields.title}
+                </h2>
+                <p class="text-xs text-[#9A7850]">
+                  Week of {new Date(plan.fields.weekOf as string).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </p>
+              </div>
+            </a>
+          );
+        })}
+      </div>
+    ) : (
+      <p class="text-center text-[#5C3D1E] py-20">Meal plans coming soon.</p>
+    )}
+
+  </div>
+</BaseLayout>

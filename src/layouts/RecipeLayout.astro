@@ -1,0 +1,89 @@
+---
+import BaseLayout from "./BaseLayout.astro";
+import { getImageUrl } from "../lib/contentful";
+import type { RecipeSkeleton } from "../lib/contentful";
+import type { Entry } from "contentful";
+import { documentToHtmlString } from "@contentful/rich-text-html-renderer";
+
+interface Props {
+  recipe: Entry<RecipeSkeleton>;
+}
+
+const { recipe } = Astro.props;
+const { title, slug, excerpt, category, publishedDate, featuredImage, ingredients, instructions } = recipe.fields;
+
+const imageUrl = getImageUrl(featuredImage as any);
+const ingredientsHtml = ingredients ? documentToHtmlString(ingredients as any) : "";
+const instructionsHtml = instructions ? documentToHtmlString(instructions as any) : "";
+
+// Structured data — Recipe schema (site currently lacks this; migration improvement)
+const recipeSchema = {
+  "@context": "https://schema.org",
+  "@type": "Recipe",
+  "name": title,
+  "description": excerpt ?? "",
+  "image": imageUrl ? [imageUrl] : [],
+  "author": {
+    "@type": "Person",
+    "name": "Jaime Esquivel",
+  },
+  "datePublished": publishedDate,
+  "recipeCategory": category,
+  "recipeIngredient": [],
+  "recipeInstructions": [],
+};
+---
+
+<BaseLayout
+  title={title as string}
+  description={excerpt as string | undefined}
+  ogImage={imageUrl}
+  articleMeta={{
+    publishedTime: publishedDate as string,
+    author: "Jaime Esquivel",
+    section: category as string,
+  }}
+>
+  <script slot="head-schema" type="application/ld+json" set:html={JSON.stringify(recipeSchema)} />
+
+  <article class="max-w-3xl mx-auto px-4 py-12">
+    <header class="mb-8">
+      <span class="text-sm uppercase tracking-widest text-[#A06820] font-semibold">
+        {category}
+      </span>
+      <h1 class="font-display text-4xl md:text-5xl mt-2 mb-4">{title}</h1>
+      {excerpt && <p class="text-lg text-[#5C3D1E] leading-relaxed">{excerpt}</p>}
+      <p class="text-sm text-[#5C3D1E] mt-3">
+        By Jaime Esquivel &middot;{" "}
+        {new Date(publishedDate as string).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })}
+      </p>
+    </header>
+
+    {imageUrl && (
+      <img
+        src={imageUrl}
+        alt={title as string}
+        class="w-full rounded-2xl object-cover mb-10"
+        style="aspect-ratio: 16/9;"
+        loading="eager"
+      />
+    )}
+
+    <div class="grid md:grid-cols-2 gap-8 mb-12">
+      <section>
+        <h2 class="font-display text-2xl mb-4 border-b border-[#DDC9A0] pb-2">Ingredients</h2>
+        <div class="prose-catalina" set:html={ingredientsHtml} />
+      </section>
+      <section>
+        <h2 class="font-display text-2xl mb-4 border-b border-[#DDC9A0] pb-2">Instructions</h2>
+        <div class="prose-catalina" set:html={instructionsHtml} />
+      </section>
+    </div>
+
+    <slot />
+  </article>
+</BaseLayout>

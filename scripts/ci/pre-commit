@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# ============================================================
+# Local pre-commit hook — runs Gitleaks on staged changes
+#
+# Install: bash scripts/ci/install-hooks.sh
+# Bypass (emergency only): git commit --no-verify
+# ============================================================
+
+set -euo pipefail
+
+HAS_GITLEAKS=false
+HAS_DOCKER=false
+
+command -v gitleaks &>/dev/null && HAS_GITLEAKS=true
+command -v docker   &>/dev/null && HAS_DOCKER=true
+
+if ! $HAS_GITLEAKS && ! $HAS_DOCKER; then
+  echo "  ⚠  pre-commit: neither 'gitleaks' nor 'docker' found — skipping secret scan"
+  echo "     Install gitleaks: https://github.com/gitleaks/gitleaks#installing"
+  exit 0
+fi
+
+echo ""
+echo "  [pre-commit] Gitleaks — scanning staged files for secrets..."
+
+if $HAS_GITLEAKS; then
+  if ! gitleaks protect --staged --config .gitleaks.toml --redact 2>&1; then
+    echo ""
+    echo "  ✗ Secrets detected in staged files."
+    echo "    Remove all credentials before committing."
+    echo "    Rotate any exposed keys immediately."
+    echo ""
+    exit 1
+  fi
+else
+  STAGED=$(git diff --cached --name-only 2>/dev/null)
+  if [[ -z "$STAGED" ]]; then
+    exit 0
+  fi
+
+  WORK_DIR=$(mktemp -d)
+  trap 'rm -rf "$WORK_DIR"' EXIT
+
+  git diff --cached --binary | (cd "$WORK_DIR" && git apply --reject 2>/dev/null || true)
+  cp .gitleaks.toml "$WORK_DIR/.gitleaks.toml" 2>/dev/null || true
+
+  if ! docker run --rm \
+      -v "$WORK_DIR:/scan:ro" \
+      zricethezav/gitleaks:latest \
+      detect --source=/scan --no-git --redact --exit-code=1 2>&1; then
+    echo ""
+    echo "  ✗ Secrets detected in staged files."
+    echo "    Remove all credentials before committing."
+    echo ""
+    exit 1
+  fi
+fi
+
+echo "  ✓ No secrets detected"
+echo ""
+exit 0

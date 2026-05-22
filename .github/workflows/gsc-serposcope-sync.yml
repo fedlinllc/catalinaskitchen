@@ -1,0 +1,28 @@
+name: GSC → Serposcope Sync
+
+on:
+  schedule:
+    - cron: "0 5 * * 0"   # Sunday 05:00 UTC
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Sync GSC queries into Serposcope
+    runs-on: [self-hosted, vision]
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Python deps
+        run: |
+          pip install --quiet --break-system-packages \
+            google-auth google-auth-httplib2 google-api-python-client
+
+      - name: Run GSC → Serposcope sync
+        env:
+          GSC_CLIENT_ID:     ${{ secrets.GSC_CLIENT_ID }}
+          GSC_CLIENT_SECRET: ${{ secrets.GSC_CLIENT_SECRET }}
+          GSC_REFRESH_TOKEN: ${{ secrets.GSC_REFRESH_TOKEN }}
+          SITE_URL:          "https://www.catalinaskitchen.com/"
+        run: python3 scripts/gsc_serposcope_sync.py

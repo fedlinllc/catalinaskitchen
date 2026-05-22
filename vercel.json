@@ -1,0 +1,12 @@
+{
+  "buildCommand": "pnpm build",
+  "framework": "astro",
+  "installCommand": "pnpm install",
+  "outputDirectory": "dist",
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "preview": true
+    }
+  }
+}

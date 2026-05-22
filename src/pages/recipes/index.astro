@@ -1,0 +1,89 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import RecipeCard from "../../components/RecipeCard.astro";
+import { getAllRecipes, getRecipesByCategory, RECIPE_CATEGORIES } from "../../lib/contentful";
+
+const { category } = Astro.url.searchParams
+  ? Object.fromEntries(Astro.url.searchParams)
+  : {};
+
+const validCategory = RECIPE_CATEGORIES.find((c) => c.id === category)?.id;
+const recipes = validCategory
+  ? await getRecipesByCategory(validCategory)
+  : await getAllRecipes();
+
+const categoryLabel = validCategory
+  ? RECIPE_CATEGORIES.find((c) => c.id === validCategory)?.label
+  : undefined;
+
+// Hardcoded category tiles with downloaded images
+const categoryTiles = [
+  { id: "breakfast", label: "Breakfast",      img: "/images/screen-shot-2024-08-21-at-6.33.12-pm.png" },
+  { id: "dinner",    label: "Dinner",          img: "/images/screenshot-2025-01-22-at-3.29.30-pm.png" },
+  { id: "sides",     label: "Sides",           img: "/images/screen-shot-2024-07-03-at-5.52.20-pm.jpg" },
+  { id: "sauces",    label: "Sauces & Salsas", img: "/images/screen-shot-2024-06-12-at-6.52.18-pm.png" },
+  { id: "dessert",   label: "Dessert",         img: "/images/screen-shot-2024-02-21-at-8.20.17-am.png" },
+] as const;
+---
+
+<BaseLayout
+  title={categoryLabel ? `${categoryLabel} Recipes` : "All Recipes"}
+  description="Browse all recipes — dinner, sides, sauces, breakfast, and dessert. Healthy, multicultural, flavor-packed cooking."
+>
+  <div class="max-w-6xl mx-auto px-4 py-12">
+
+    <!-- Page header -->
+    <div class="text-center mb-10">
+      <h1 class="font-display text-4xl md:text-5xl text-[#3D2B0F] mb-3">
+        {categoryLabel ? `${categoryLabel} Recipes` : "All Recipes"}
+      </h1>
+      <p class="text-[#5C3D1E] max-w-xl mx-auto">
+        Discover flavorful, healthy recipes inspired by cuisines from around the world.
+      </p>
+    </div>
+
+    <!-- Category tiles (shown when no category filter active) -->
+    {!validCategory && (
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-12">
+        {categoryTiles.map(({ id, label, img }) => (
+          <a
+            href={`/recipes?category=${id}`}
+            class="group relative rounded-2xl overflow-hidden aspect-square block shadow-sm hover:shadow-md transition-shadow"
+          >
+            <img
+              src={img}
+              alt={label}
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              loading="lazy"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            <span class="absolute bottom-3 left-0 right-0 text-center text-white font-semibold text-sm drop-shadow">
+              {label}
+            </span>
+          </a>
+        ))}
+      </div>
+    )}
+
+    <!-- Back link when filtering -->
+    {validCategory && (
+      <div class="mb-8">
+        <a href="/recipes" class="text-sm text-[#A06820] hover:underline">← All Recipes</a>
+      </div>
+    )}
+
+    <!-- Recipe grid -->
+    {recipes.length > 0 ? (
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {recipes.map((recipe) => (
+          <RecipeCard recipe={recipe} />
+        ))}
+      </div>
+    ) : (
+      <p class="text-center text-[#5C3D1E] py-20">
+        Recipes coming soon. Check back after the Contentful import.
+      </p>
+    )}
+
+  </div>
+</BaseLayout>

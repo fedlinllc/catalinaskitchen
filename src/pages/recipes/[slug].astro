@@ -1,0 +1,39 @@
+---
+import RecipeLayout from "../../layouts/RecipeLayout.astro";
+import RecipeCard from "../../components/RecipeCard.astro";
+import { getAllRecipes, getRecipeBySlug } from "../../lib/contentful";
+
+export async function getStaticPaths() {
+  const recipes = await getAllRecipes();
+  return recipes.map((recipe) => ({
+    params: { slug: recipe.fields.slug as string },
+  }));
+}
+
+const { slug } = Astro.params;
+const recipe = await getRecipeBySlug(slug!);
+
+if (!recipe) {
+  return Astro.redirect("/recipes", 301);
+}
+
+const allRecipes = await getAllRecipes();
+const related = allRecipes
+  .filter(
+    (r) =>
+      r.fields.category === recipe.fields.category &&
+      r.fields.slug !== recipe.fields.slug
+  )
+  .slice(0, 3);
+---
+
+<RecipeLayout recipe={recipe}>
+  {related.length > 0 && (
+    <section class="mt-16 pt-12 border-t border-[#DDC9A0]">
+      <h2 class="font-display text-2xl mb-6">More {recipe.fields.category} Recipes</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        {related.map((r) => <RecipeCard recipe={r} />)}
+      </div>
+    </section>
+  )}
+</RecipeLayout>

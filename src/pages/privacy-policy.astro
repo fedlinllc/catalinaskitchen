@@ -1,0 +1,57 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Privacy Policy"
+  description="Privacy Policy for Catalina's Kitchen."
+  noindex={true}
+>
+  <article class="max-w-3xl mx-auto px-4 py-16">
+    <h1 class="font-display text-4xl mb-2">Privacy Policy</h1>
+    <p class="text-sm text-[#9A7850] mb-10">Last updated: May 2026</p>
+
+    <div class="prose-catalina space-y-8 text-[#5C3D1E] leading-relaxed">
+      <section>
+        <h2 class="font-display text-2xl text-[#3D2B0F] mb-3">Information We Collect</h2>
+        <p>
+          We collect information you provide directly, such as your name and email address when
+          you subscribe to our newsletter or contact us through the contact form.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="font-display text-2xl text-[#3D2B0F] mb-3">How We Use Your Information</h2>
+        <p>
+          Your email address is used solely to send you recipe updates and meal plan notifications
+          you've requested. We will never sell or share your personal information with third parties
+          for marketing purposes.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="font-display text-2xl text-[#3D2B0F] mb-3">Cookies</h2>
+        <p>
+          This site uses minimal cookies for analytics (Google Analytics, if enabled) to understand
+          how visitors use the site. Analytics data is anonymized and aggregated.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="font-display text-2xl text-[#3D2B0F] mb-3">Your Rights</h2>
+        <p>
+          You may unsubscribe from email communications at any time using the unsubscribe link
+          in any email we send. To request deletion of your personal data, contact us at the
+          address below.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="font-display text-2xl text-[#3D2B0F] mb-3">Contact</h2>
+        <p>
+          Questions about this policy? <a href="/contact" class="text-[#A06820] hover:underline">Contact us</a>.
+        </p>
+      </section>
+    </div>
+  </article>
+</BaseLayout>

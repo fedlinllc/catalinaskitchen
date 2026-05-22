@@ -1,0 +1,121 @@
+---
+import "../styles/global.css";
+import Nav from "../components/Nav.astro";
+import Footer from "../components/Footer.astro";
+
+interface Props {
+  title: string;
+  description?: string;
+  ogImage?: string;
+  canonical?: string;
+  noindex?: boolean;
+  /** Article metadata for blog/recipe pages */
+  articleMeta?: {
+    publishedTime?: string;
+    modifiedTime?: string;
+    author?: string;
+    section?: string;
+  };
+}
+
+const {
+  title,
+  description = "Flavorful, bold, healthy, multiculturally inspired cooking. Recipes, meal plans, and nutrition guidance from Catalina's Kitchen.",
+  ogImage = "/og-image.jpg",
+  noindex = false,
+  canonical,
+  articleMeta,
+} = Astro.props;
+
+const pageTitle = title.includes("Catalina") ? title : `${title} | Catalina's Kitchen`;
+const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toString();
+const GA_ID = import.meta.env.PUBLIC_GA_MEASUREMENT_ID;
+const isProduction = import.meta.env.VERCEL_ENV === "production";
+const ogType = articleMeta ? "article" : "website";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <meta name="generator" content={Astro.generator} />
+
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+
+    <!-- Open Graph -->
+    <meta property="og:type" content={ogType} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={new URL(ogImage, Astro.site).toString()} />
+    <meta property="og:site_name" content="Catalina's Kitchen" />
+    {articleMeta?.publishedTime && (
+      <meta property="article:published_time" content={articleMeta.publishedTime} />
+    )}
+    {articleMeta?.modifiedTime && (
+      <meta property="article:modified_time" content={articleMeta.modifiedTime} />
+    )}
+    {articleMeta?.author && (
+      <meta property="article:author" content={articleMeta.author} />
+    )}
+    {articleMeta?.section && (
+      <meta property="article:section" content={articleMeta.section} />
+    )}
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={new URL(ogImage, Astro.site).toString()} />
+
+    <!-- Per-page schema injection slot -->
+    <slot name="head-schema" />
+
+    <!-- Google Fonts — async, non-render-blocking -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&family=Playfair+Display:wght@400;500;600;700&display=swap"
+      onload="this.onload=null;this.rel='stylesheet'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&family=Playfair+Display:wght@400;500;600;700&display=swap"
+      />
+    </noscript>
+
+    <!-- Google Analytics 4 -->
+    {GA_ID && isProduction && (
+      <>
+        <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}></script>
+        <script define:vars={{ GA_ID }}>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('consent', 'default', {
+            analytics_storage: 'denied',
+            ad_storage: 'denied',
+          });
+          gtag('config', GA_ID, { send_page_view: false });
+        </script>
+      </>
+    )}
+  </head>
+  <body class="bg-[#FDF9F2] text-[#3D2B0F] font-sans antialiased">
+    <Nav />
+    <main>
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>

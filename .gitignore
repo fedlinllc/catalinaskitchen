@@ -1,0 +1,26 @@
+# Build output
+dist/
+.vercel/
+
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Astro
+.astro/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp
+*.swo
+
+# Scraped content (large; committed separately or via Git LFS if needed)
+scraped/

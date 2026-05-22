@@ -1,0 +1,85 @@
+---
+const navLinks = [
+  { href: "/recipes", label: "Recipes" },
+  { href: "/meal-plans", label: "Meal Plans" },
+  { href: "/blog", label: "Blog" },
+  { href: "/contact", label: "Contact" },
+];
+
+const pathname = Astro.url.pathname;
+---
+
+<header class="sticky top-0 z-50 bg-[#FDF9F2]/95 backdrop-blur border-b border-[#DDC9A0]">
+  <nav class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2" aria-label="Catalina's Kitchen home">
+      <img
+        src="/images/catalina-s-kitchen-logo.png"
+        alt="Catalina's Kitchen"
+        class="h-[5rem] md:h-[7.5rem] w-auto"
+        loading="eager"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='block'"
+      />
+      <span class="font-display text-xl font-semibold text-[#3D2B0F] hidden">
+        Catalina's Kitchen
+      </span>
+    </a>
+
+    <ul class="hidden md:flex items-center gap-6 list-none m-0 p-0">
+      {navLinks.map(({ href, label }) => (
+        <li>
+          <a
+            href={href}
+            class:list={[
+              "text-sm font-medium transition-colors",
+              pathname.startsWith(href)
+                ? "text-[#A06820]"
+                : "text-[#5C3D1E] hover:text-[#A06820]",
+            ]}
+          >
+            {label}
+          </a>
+        </li>
+      ))}
+    </ul>
+
+    <!-- Mobile menu button -->
+    <button
+      id="mobile-menu-btn"
+      class="md:hidden p-2 rounded-lg text-[#5C3D1E] hover:text-[#A06820]"
+      aria-label="Toggle menu"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+      </svg>
+    </button>
+  </nav>
+
+  <!-- Mobile menu -->
+  <div id="mobile-menu" class="md:hidden hidden border-t border-[#DDC9A0] bg-[#FDF9F2]">
+    <ul class="max-w-6xl mx-auto px-4 py-4 flex flex-col gap-3 list-none m-0">
+      {navLinks.map(({ href, label }) => (
+        <li>
+          <a
+            href={href}
+            class:list={[
+              "block py-1 text-base font-medium transition-colors",
+              pathname.startsWith(href)
+                ? "text-[#A06820]"
+                : "text-[#5C3D1E] hover:text-[#A06820]",
+            ]}
+          >
+            {label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</header>
+
+<script>
+  const btn = document.getElementById("mobile-menu-btn");
+  const menu = document.getElementById("mobile-menu");
+  btn?.addEventListener("click", () => {
+    menu?.classList.toggle("hidden");
+  });
+</script>

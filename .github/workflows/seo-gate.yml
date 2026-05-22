@@ -1,0 +1,218 @@
+name: SEO Gate
+
+on:
+  deployment_status:
+
+jobs:
+  seo-check:
+    if: >-
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment_status.environment_url != ''
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha }}
+
+      - name: Extract crawler from ConfigMap
+        run: |
+          kubectl get configmap site-audit-crawler-script \
+            -n site-audit \
+            -o jsonpath='{.data.crawler\.py}' \
+            > /tmp/seo-crawler-${{ github.run_id }}.py
+
+      - name: Install dependencies
+        run: pip install -q requests beautifulsoup4
+
+      - name: Run crawler
+        run: python3 /tmp/seo-crawler-${{ github.run_id }}.py
+        env:
+          SITE_URL: ${{ github.event.deployment_status.environment_url }}
+          DATA_DIR: /tmp/seo-gate-${{ github.run_id }}
+
+      - name: Check for SEO issues
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: |
+          python3 - <<'PYEOF'
+          import json, sys, os, glob
+
+          data_dir = f"/tmp/seo-gate-{os.environ['GITHUB_RUN_ID']}"
+          files = glob.glob(f"{data_dir}/*.json")
+          if not files:
+              print("ERROR: no crawler output found")
+              sys.exit(1)
+
+          with open(files[0]) as f:
+              result = json.load(f)
+
+          SKIP = {"canonical_mismatch"}
+          WARN_ONLY = {"images_missing_dimensions"}
+          BOT_BLOCKED = {"www.linkedin.com", "linkedin.com"}
+
+          def _bot_blocked(item):
+              url = item if isinstance(item, str) else (item.get("url") or item.get("link") or str(item))
+              return any(d in url for d in BOT_BLOCKED)
+
+          counts = {}
+          for k, v in result["issues"].items():
+              if k == "external_4xx":
+                  v = [i for i in v if not _bot_blocked(i)]
+              counts[k] = len(v)
+          failures = []
+
+          print(f"\n{'Issue type':<35} {'Count':>8} {'':>10}")
+          print("-" * 55)
+          for issue_type, count in sorted(counts.items()):
+              if issue_type in SKIP:
+                  continue
+              if count > 0:
+                  if issue_type in WARN_ONLY:
+                      status = "WARN"
+                  else:
+                      status = "FAIL"
+                      failures.append((issue_type, count))
+              else:
+                  status = "pass"
+              print(f"{issue_type:<35} {count:>8} {status:>10}")
+
+          print()
+          if failures:
+              print(f"FAIL — {len(failures)} issue type(s) with errors:")
+              for t, c in failures:
+                  print(f"  {t}: {c}")
+              sys.exit(1)
+          else:
+              print(f"PASS — zero SEO issues. ({result['pages_crawled']} pages crawled)")
+          PYEOF
+
+      - name: Lighthouse CWV + SEO audit
+        run: |
+          CHROME=$(command -v google-chrome-stable 2>/dev/null \
+              || command -v google-chrome 2>/dev/null \
+              || command -v chromium-browser 2>/dev/null \
+              || command -v chromium 2>/dev/null || echo "")
+          if [ -z "$CHROME" ]; then
+            sudo dnf install -y chromium >/dev/null 2>&1 || true
+            CHROME=$(command -v chromium-browser 2>/dev/null \
+                || command -v chromium 2>/dev/null || echo "")
+          fi
+          if [ -z "$CHROME" ]; then
+            echo "WARN: Chrome unavailable on runner — skipping Lighthouse audit"
+            exit 0
+          fi
+          LH_OUT=/tmp/lh-${{ github.run_id }}.json
+          npx --yes lighthouse "$PREVIEW_URL" \
+            --output json \
+            --output-path "$LH_OUT" \
+            --chrome-path "$CHROME" \
+            --chrome-flags="--headless --no-sandbox --disable-gpu" \
+            --only-categories=performance,seo \
+            --quiet 2>/dev/null \
+            || { echo "WARN: Lighthouse run failed — skipping"; rm -f "$LH_OUT"; exit 0; }
+          LH_OUT_FILE="$LH_OUT" python3 - <<'PYEOF'
+          import json, sys, os
+          with open(os.environ["LH_OUT_FILE"]) as f:
+              lhr = json.load(f)
+          cats   = lhr.get("categories", {})
+          audits = lhr.get("audits", {})
+          seo    = cats.get("seo",         {}).get("score")
+          perf   = cats.get("performance", {}).get("score")
+          lcp    = audits.get("largest-contentful-paint", {}).get("numericValue")
+          cls_   = audits.get("cumulative-layout-shift",  {}).get("numericValue")
+          tbt    = audits.get("total-blocking-time",       {}).get("numericValue")
+          url    = lhr.get("finalUrl", os.environ.get("PREVIEW_URL", ""))
+
+          print(f"\nLighthouse audit: {url}")
+          print(f"  {'Metric':<28} {'Value':>10}  Status")
+          print("  " + "─" * 46)
+          failures, warnings = [], []
+          def chk(name, val, fmt, fail_cond=None, warn_cond=None):
+              if val is None:
+                  print(f"  {name:<28} {'N/A':>10}  skip"); return
+              status = "pass"
+              if fail_cond and fail_cond(val):
+                  status = "FAIL"; failures.append(f"{name}: {fmt(val)}")
+              elif warn_cond and warn_cond(val):
+                  status = "WARN"; warnings.append(f"{name}: {fmt(val)}")
+              print(f"  {name:<28} {fmt(val):>10}  {status}")
+          on_preview = "vercel.app" in url
+          chk("SEO score",         seo,  lambda v: f"{v:.2f}",
+              None if on_preview else (lambda v: v < 0.90),
+              (lambda v: v < 0.90) if on_preview else None)
+          chk("Performance score", perf, lambda v: f"{v:.2f}",
+              None if on_preview else (lambda v: v < 0.90),
+              (lambda v: v < 0.90) if on_preview else None)
+          chk("LCP (ms)",          lcp,  lambda v: f"{v:.0f}",
+              None if on_preview else (lambda v: v > 2500),
+              (lambda v: v > 2500) if on_preview else None)
+          chk("CLS",               cls_, lambda v: f"{v:.3f}", lambda v: v > 0.10)
+          chk("TBT (ms)",          tbt,  lambda v: f"{v:.0f}", None, lambda v: v > 600)
+          print()
+          for w in warnings:
+              print(f"  WARN: {w} (non-blocking)")
+          if failures:
+              print(f"\nFAIL — {len(failures)} Lighthouse check(s) failed:")
+              for fitem in failures: print(f"  {fitem}")
+              sys.exit(1)
+          else:
+              print(f"PASS — Lighthouse checks clean.")
+          PYEOF
+          lh_rc=$?
+          rm -f "$LH_OUT"
+          exit $lh_rc
+        env:
+          PREVIEW_URL: ${{ github.event.deployment_status.environment_url }}
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f /tmp/seo-crawler-${{ github.run_id }}.py
+          rm -rf /tmp/seo-gate-${{ github.run_id }}
+
+  prometheus-gate:
+    needs: seo-check
+    if: >-
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment_status.environment == 'Production'
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha }}
+
+      - name: Install Python deps
+        run: pip install -q requests google-auth google-api-python-client
+
+      - name: Serposcope + LHCI health check
+        run: bash scripts/seo_prometheus_gate.sh
+        env:
+          SITE: catalinaskitchen.com
+
+      - name: Trigger on-demand site-audit crawl
+        run: |
+          CRONJOB=$(kubectl get cronjob -n site-audit \
+            -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+          if [ -n "$CRONJOB" ]; then
+            kubectl create job "site-audit-ondemand-$(date +%s)" \
+              --from="cronjob/${CRONJOB}" \
+              -n site-audit
+            echo "Triggered ad-hoc crawl from CronJob: ${CRONJOB}"
+          else
+            echo "WARN: No site-audit CronJob found — skipping"
+          fi
+
+      - name: IndexNow ping
+        env:
+          SITE_URL: https://www.catalinaskitchen.com
+          INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
+        run: python3 scripts/indexnow_ping.py
+
+      - name: GSC indexing check + sitemap resubmit
+        env:
+          GSC_CLIENT_ID: ${{ secrets.GSC_CLIENT_ID }}
+          GSC_CLIENT_SECRET: ${{ secrets.GSC_CLIENT_SECRET }}
+          GSC_REFRESH_TOKEN: ${{ secrets.GSC_REFRESH_TOKEN }}
+          GSC_SERVICE_ACCOUNT_KEY: ${{ secrets.GSC_SERVICE_ACCOUNT_KEY }}
+          SITE_URL: https://www.catalinaskitchen.com/
+        run: python3 scripts/gsc_check.py

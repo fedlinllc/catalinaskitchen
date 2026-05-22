@@ -1,0 +1,67 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getAllMealPlans, getMealPlanBySlug, getImageUrl } from "../../lib/contentful";
+import { documentToHtmlString } from "@contentful/rich-text-html-renderer";
+
+export async function getStaticPaths() {
+  const plans = await getAllMealPlans();
+  return plans.map((plan) => ({
+    params: { slug: plan.fields.slug as string },
+  }));
+}
+
+const { slug } = Astro.params;
+const plan = await getMealPlanBySlug(slug!);
+
+if (!plan) {
+  return Astro.redirect("/meal-plans", 301);
+}
+
+const contentHtml = plan.fields.content
+  ? documentToHtmlString(plan.fields.content as any)
+  : "";
+const imageUrl = getImageUrl(plan.fields.featuredImage as any);
+---
+
+<BaseLayout
+  title={plan.fields.title as string}
+  description={`Meal plan for the week of ${new Date(plan.fields.weekOf as string).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.`}
+  ogImage={imageUrl}
+>
+  <article class="max-w-3xl mx-auto px-4 py-12">
+    <div class="mb-2">
+      {plan.fields.isCurrent && (
+        <span class="inline-block bg-[#5B8C3E] text-white text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full mr-2">
+          Current Week
+        </span>
+      )}
+      <span class="text-sm text-[#5C3D1E]">
+        Week of {new Date(plan.fields.weekOf as string).toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        })}
+      </span>
+    </div>
+
+    <h1 class="font-display text-4xl md:text-5xl mt-2 mb-8">{plan.fields.title}</h1>
+
+    {imageUrl && (
+      <img
+        src={imageUrl}
+        alt={plan.fields.title as string}
+        class="w-full rounded-2xl object-cover mb-10"
+        style="aspect-ratio: 16/9;"
+        loading="eager"
+      />
+    )}
+
+    <div class="prose-catalina" set:html={contentHtml} />
+
+    <div class="mt-12 pt-6 border-t border-[#DDC9A0]">
+      <a href="/meal-plans" class="text-[#A06820] hover:underline text-sm font-medium">
+        ← All Meal Plans
+      </a>
+    </div>
+  </article>
+</BaseLayout>

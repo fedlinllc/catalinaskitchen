@@ -1,0 +1,53 @@
+---
+const year = new Date().getFullYear();
+---
+
+<footer class="bg-[#3D2B0F] text-[#DDC9A0] mt-20">
+  <div class="max-w-6xl mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-3 gap-8">
+    <div>
+      <h3 class="font-display text-xl text-white mb-3">Catalina's Kitchen</h3>
+      <p class="text-sm leading-relaxed text-[#9A7850]">
+        Flavorful, bold, healthy, multiculturally inspired cooking. Building a healthier
+        relationship with food — one recipe at a time.
+      </p>
+    </div>
+
+    <div>
+      <h4 class="font-semibold text-white mb-3 uppercase tracking-wider text-xs">Explore</h4>
+      <ul class="space-y-2 list-none m-0 p-0">
+        {[
+          { href: "/recipes",     label: "All Recipes" },
+          { href: "/meal-plans",  label: "Meal Plans" },
+          { href: "/blog",        label: "Blog" },
+          { href: "/contact",     label: "Contact" },
+        ].map(({ href, label }) => (
+          <li>
+            <a href={href} class="text-sm text-[#9A7850] hover:text-white transition-colors">
+              {label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    <div>
+      <h4 class="font-semibold text-white mb-3 uppercase tracking-wider text-xs">Never Miss a Recipe</h4>
+      <p class="text-sm text-[#9A7850] mb-4">
+        Get new recipes and meal plans delivered straight to your inbox.
+      </p>
+      <a
+        href="/contact"
+        class="inline-block bg-[#A06820] hover:bg-[#7A4E15] text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors"
+      >
+        Subscribe
+      </a>
+    </div>
+  </div>
+
+  <div class="border-t border-[#241808]">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-[#5C3D1E]">
+      <p>&copy; {year} Catalina's Kitchen. All rights reserved.</p>
+      <a href="/privacy-policy" class="hover:text-[#9A7850] transition-colors">Privacy Policy</a>
+    </div>
+  </div>
+</footer>

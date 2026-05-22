@@ -1,0 +1,65 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getAllBlogPosts, getImageUrl } from "../../lib/contentful";
+
+const posts = await getAllBlogPosts();
+---
+
+<BaseLayout
+  title="Blog"
+  description="Cooking tips, nutrition insights, and food inspiration from Catalina's Kitchen."
+>
+  <div class="max-w-4xl mx-auto px-4 py-12">
+    <div class="text-center mb-12">
+      <h1 class="font-display text-4xl md:text-5xl mb-4">Blog</h1>
+      <p class="text-[#5C3D1E] max-w-xl mx-auto">
+        Cooking tips, ingredient guides, and stories from the kitchen.
+      </p>
+    </div>
+
+    {posts.length > 0 ? (
+      <div class="flex flex-col gap-8">
+        {posts.map((post) => {
+          const imageUrl = getImageUrl(post.fields.featuredImage as any);
+          return (
+            <a
+              href={`/blog/${post.fields.slug}`}
+              class="group grid sm:grid-cols-3 gap-6 rounded-2xl border border-[#DDC9A0] bg-[#F7EDD5] overflow-hidden hover:shadow-lg transition-shadow"
+            >
+              {imageUrl && (
+                <div class="sm:col-span-1 overflow-hidden bg-[#F5EDDA]">
+                  <img
+                    src={imageUrl}
+                    alt={post.fields.title as string}
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    style="min-height: 180px;"
+                    loading="lazy"
+                  />
+                </div>
+              )}
+              <div class:list={["p-6 flex flex-col justify-center", imageUrl ? "sm:col-span-2" : "sm:col-span-3"]}>
+                <p class="text-xs text-[#9A7850] mb-2">
+                  {new Date(post.fields.publishedDate as string).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </p>
+                <h2 class="font-display text-xl mb-2 group-hover:text-[#A06820] transition-colors">
+                  {post.fields.title}
+                </h2>
+                {post.fields.excerpt && (
+                  <p class="text-sm text-[#5C3D1E] line-clamp-3 leading-relaxed">
+                    {post.fields.excerpt}
+                  </p>
+                )}
+              </div>
+            </a>
+          );
+        })}
+      </div>
+    ) : (
+      <p class="text-center text-[#5C3D1E] py-20">Blog posts coming soon.</p>
+    )}
+  </div>
+</BaseLayout>

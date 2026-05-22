@@ -1,0 +1,69 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getAllBlogPosts, getBlogPostBySlug, getImageUrl } from "../../lib/contentful";
+import { documentToHtmlString } from "@contentful/rich-text-html-renderer";
+
+export async function getStaticPaths() {
+  const posts = await getAllBlogPosts();
+  return posts.map((post) => ({
+    params: { slug: post.fields.slug as string },
+  }));
+}
+
+const { slug } = Astro.params;
+const post = await getBlogPostBySlug(slug!);
+
+if (!post) {
+  return Astro.redirect("/blog", 301);
+}
+
+const contentHtml = post.fields.content
+  ? documentToHtmlString(post.fields.content as any)
+  : "";
+const imageUrl = getImageUrl(post.fields.featuredImage as any);
+---
+
+<BaseLayout
+  title={post.fields.title as string}
+  description={post.fields.excerpt as string | undefined}
+  ogImage={imageUrl}
+  articleMeta={{
+    publishedTime: post.fields.publishedDate as string,
+    author: "Jaime Esquivel",
+    section: "Blog",
+  }}
+>
+  <article class="max-w-3xl mx-auto px-4 py-12">
+    <header class="mb-8">
+      <p class="text-sm text-[#9A7850] mb-2">
+        {new Date(post.fields.publishedDate as string).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })}
+      </p>
+      <h1 class="font-display text-4xl md:text-5xl mb-4">{post.fields.title}</h1>
+      {post.fields.excerpt && (
+        <p class="text-lg text-[#5C3D1E] leading-relaxed">{post.fields.excerpt}</p>
+      )}
+    </header>
+
+    {imageUrl && (
+      <img
+        src={imageUrl}
+        alt={post.fields.title as string}
+        class="w-full rounded-2xl object-cover mb-10"
+        style="aspect-ratio: 16/9;"
+        loading="eager"
+      />
+    )}
+
+    <div class="prose-catalina" set:html={contentHtml} />
+
+    <div class="mt-12 pt-6 border-t border-[#DDC9A0]">
+      <a href="/blog" class="text-[#A06820] hover:underline text-sm font-medium">
+        ← All Posts
+      </a>
+    </div>
+  </article>
+</BaseLayout>

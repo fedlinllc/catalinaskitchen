@@ -1,0 +1,73 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import NewsletterSignup from "../components/NewsletterSignup";
+---
+
+<BaseLayout
+  title="Contact"
+  description="Get in touch with Catalina's Kitchen — recipe questions, ingredient substitutions, or just to say hello."
+  noindex={true}
+>
+  <div class="max-w-2xl mx-auto px-4 py-16">
+    <div class="text-center mb-12">
+      <h1 class="font-display text-4xl mb-4">Get in Touch</h1>
+      <p class="text-[#5C3D1E]">
+        Questions about a recipe? Need an ingredient substitution for allergies or dietary needs?
+        I'd love to help.
+      </p>
+    </div>
+
+    <form
+      name="contact"
+      method="POST"
+      data-netlify="true"
+      class="bg-[#F7EDD5] border border-[#DDC9A0] rounded-2xl p-8 flex flex-col gap-5"
+    >
+      <div>
+        <label for="name" class="block text-sm font-medium text-[#3D2B0F] mb-1">Name</label>
+        <input
+          id="name"
+          name="name"
+          type="text"
+          required
+          class="w-full px-4 py-2 rounded-lg border border-[#DDC9A0] bg-white text-[#3D2B0F] focus:outline-none focus:ring-2 focus:ring-[#A06820]"
+        />
+      </div>
+
+      <div>
+        <label for="email" class="block text-sm font-medium text-[#3D2B0F] mb-1">Email</label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          required
+          class="w-full px-4 py-2 rounded-lg border border-[#DDC9A0] bg-white text-[#3D2B0F] focus:outline-none focus:ring-2 focus:ring-[#A06820]"
+        />
+      </div>
+
+      <div>
+        <label for="message" class="block text-sm font-medium text-[#3D2B0F] mb-1">Message</label>
+        <textarea
+          id="message"
+          name="message"
+          rows="5"
+          required
+          class="w-full px-4 py-2 rounded-lg border border-[#DDC9A0] bg-white text-[#3D2B0F] focus:outline-none focus:ring-2 focus:ring-[#A06820] resize-none"
+        ></textarea>
+      </div>
+
+      <button
+        type="submit"
+        class="bg-[#A06820] hover:bg-[#7A4E15] text-white font-medium px-7 py-3 rounded-xl transition-colors self-start"
+      >
+        Send Message
+      </button>
+    </form>
+
+    <div class="mt-16 text-center">
+      <h2 class="font-display text-2xl mb-3">Never Miss a Recipe</h2>
+      <p class="text-[#5C3D1E] mb-6">Subscribe to get new recipes delivered to your inbox.</p>
+      <NewsletterSignup client:load />
+    </div>
+  </div>
+</BaseLayout>

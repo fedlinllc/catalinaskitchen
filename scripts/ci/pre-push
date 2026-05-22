@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+# ============================================================
+# Local pre-push hook — security gates before GitHub push
+#
+# Checks:
+#   1. Gitleaks — secret scan (full git history)
+#   2. TypeScript / Astro type check
+#   3. Trivy SCA (CRITICAL/HIGH CVEs)
+#
+# Install: bash scripts/ci/install-hooks.sh
+# Bypass (emergency only): git push --no-verify
+# ============================================================
+
+set -euo pipefail
+
+divider() { echo "  ────────────────────────────────────────────────────"; }
+
+echo ""
+echo "  [pre-push] Running local gates before push..."
+divider
+
+# ── Gate 1: Gitleaks ──────────────────────────────────────
+echo "  [1/3] Gitleaks — scanning git history for secrets..."
+
+HAS_GITLEAKS=false
+HAS_DOCKER=false
+command -v gitleaks &>/dev/null && HAS_GITLEAKS=true
+command -v docker   &>/dev/null && HAS_DOCKER=true
+
+if ! $HAS_GITLEAKS && ! $HAS_DOCKER; then
+  echo "  ⚠  Neither 'gitleaks' nor 'docker' found — skipping secret scan"
+  echo "     Install gitleaks: https://github.com/gitleaks/gitleaks#installing"
+elif $HAS_GITLEAKS; then
+  if ! gitleaks detect --config .gitleaks.toml --redact 2>&1; then
+    echo ""
+    echo "  ✗ Secrets detected. Remove credentials and rotate any exposed keys."
+    echo ""
+    exit 1
+  fi
+else
+  if ! docker run --rm \
+      -v "$(pwd):/scan:ro" \
+      zricethezav/gitleaks:latest \
+      detect --source=/scan --redact --exit-code=1 2>&1; then
+    echo ""
+    echo "  ✗ Secrets detected. Remove credentials and rotate any exposed keys."
+    echo ""
+    exit 1
+  fi
+fi
+
+echo "  ✓ No secrets detected"
+divider
+
+# ── Gate 2: TypeScript / Astro check ──────────────────────
+echo "  [2/3] TypeScript — type check..."
+
+if ! pnpm astro check 2>&1; then
+  echo ""
+  echo "  ✗ TypeScript errors found. Fix all type errors before pushing."
+  echo ""
+  exit 1
+fi
+
+echo "  ✓ TypeScript clean"
+divider
+
+# ── Gate 3: Trivy SCA ─────────────────────────────────────
+echo "  [3/3] Trivy — scanning dependencies for CVEs..."
+
+HAS_TRIVY=false
+HAS_DOCKER=false
+
+command -v trivy  &>/dev/null && HAS_TRIVY=true
+command -v docker &>/dev/null && HAS_DOCKER=true
+
+if ! $HAS_TRIVY && ! $HAS_DOCKER; then
+  echo "  ⚠  Neither 'trivy' nor 'docker' found — skipping SCA"
+  echo "     Install trivy: https://aquasecurity.github.io/trivy/latest/getting-started/installation/"
+elif $HAS_TRIVY; then
+  if ! trivy fs . \
+      --ignorefile .trivyignore \
+      --severity CRITICAL,HIGH \
+      --exit-code 1 \
+      --no-progress 2>&1; then
+    echo ""
+    echo "  ✗ Trivy: CRITICAL or HIGH CVEs found."
+    echo "    Update the affected packages or add a justified entry to .trivyignore."
+    echo ""
+    exit 1
+  fi
+else
+  if ! docker run --rm \
+      -v "$(pwd):/scan:ro" \
+      -v "/tmp/trivy-cache:/root/.cache/trivy" \
+      aquasec/trivy:latest \
+      fs /scan \
+        --ignorefile /scan/.trivyignore \
+        --severity CRITICAL,HIGH \
+        --exit-code 1 \
+        --no-progress 2>&1; then
+    echo ""
+    echo "  ✗ Trivy: CRITICAL or HIGH CVEs found."
+    echo "    Update the affected packages or add a justified entry to .trivyignore."
+    echo ""
+    exit 1
+  fi
+fi
+
+echo "  ✓ No CRITICAL/HIGH CVEs"
+divider
+echo "  ✓ All pre-push checks passed"
+echo ""
+exit 0

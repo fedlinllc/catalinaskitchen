@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Disallow: /contact
+
+# AI search crawlers — explicitly permitted
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+Sitemap: https://www.catalinaskitchen.com/sitemap-index.xml

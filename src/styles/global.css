@@ -1,0 +1,69 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: false;
+  logs: false;
+}
+
+@theme {
+  /* Brand palette — warm kitchen tones */
+  --color-primary:       #A06820;
+  --color-primary-dark:  #7A4E15;
+  --color-primary-light: #F2A96E;
+  --color-accent:        #5B8C3E;
+  --color-bg:            #FDF9F2;
+  --color-bg-card:       #F7EDD5;
+  --color-bg-section:    #F5EDDA;
+  --color-text:          #3D2B0F;
+  --color-text-muted:    #5C3D1E;
+  --color-border:        #DDC9A0;
+
+  --font-sans:    'Lato', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Playfair Display', Georgia, serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    color: var(--color-text);
+    line-height: 1.2;
+  }
+  a {
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--color-primary-dark);
+  }
+  ::selection {
+    background-color: var(--color-primary-light);
+    color: var(--color-text);
+  }
+}
+
+/* Rich-text body rendering for Contentful content */
+.prose-catalina :global(h2) { font-size: 1.5rem; font-weight: 700; margin-top: 2rem; margin-bottom: 0.75rem; }
+.prose-catalina :global(h3) { font-size: 1.25rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+.prose-catalina :global(p)  { color: var(--color-text-muted); line-height: 1.8; margin-bottom: 1rem; }
+.prose-catalina :global(ul),
+.prose-catalina :global(ol) { padding-left: 1.5rem; margin-bottom: 1rem; color: var(--color-text-muted); }
+.prose-catalina :global(li) { margin-bottom: 0.25rem; }
+.prose-catalina :global(strong) { color: var(--color-text); }
+.prose-catalina :global(blockquote) {
+  border-left: 4px solid var(--color-primary);
+  background: var(--color-bg-card);
+  padding: 0.75rem 1.25rem;
+  margin: 1.5rem 0;
+  font-style: italic;
+  color: var(--color-text-muted);
+}
