@@ -7,7 +7,8 @@ Output:
   scraped/image_urls.txt   — deduplicated list of CDN image URLs to download
 
 Usage:
-  pip install requests beautifulsoup4
+  pip install playwright beautifulsoup4
+  playwright install chromium
   python3 scripts/scrape.py
 """
 
@@ -19,27 +20,15 @@ from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
 try:
-    import requests
     from bs4 import BeautifulSoup
+    from playwright.sync_api import sync_playwright, Page
 except ImportError:
-    print("Missing deps. Run: pip install requests beautifulsoup4")
+    print("Missing deps. Run: pip install playwright beautifulsoup4 && playwright install chromium")
     sys.exit(1)
 
 BASE_URL = "https://www.catalinaskitchen.com"
 OUTPUT_DIR = Path("scraped")
 OUTPUT_DIR.mkdir(exist_ok=True)
-
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (compatible; CatalinaKitchenScraper/1.0; "
-        "site-migration/content-import)"
-    ),
-    "Accept": "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9",
-}
-
-session = requests.Session()
-session.headers.update(HEADERS)
 
 image_urls: set[str] = set()
 
@@ -50,19 +39,50 @@ content: dict = {
     "pages": [],
 }
 
+_playwright = None
+_browser = None
+_page: Page | None = None
+
+
+def get_page() -> Page:
+    global _playwright, _browser, _page
+    if _page is None:
+        _playwright = sync_playwright().start()
+        _browser = _playwright.chromium.launch(headless=True)
+        _page = _browser.new_page(
+            user_agent=(
+                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            )
+        )
+    return _page
+
 
 def fetch(url: str) -> BeautifulSoup | None:
+    page = get_page()
     try:
-        resp = session.get(url, timeout=15)
-        resp.raise_for_status()
-        return BeautifulSoup(resp.text, "html.parser")
+        page.goto(url, wait_until="networkidle", timeout=30000)
+        # Extra wait for JS-rendered content
+        page.wait_for_timeout(1500)
+        html = page.content()
+        return BeautifulSoup(html, "html.parser")
     except Exception as e:
         print(f"  WARN: failed to fetch {url}: {e}")
         return None
 
 
+def close_browser() -> None:
+    global _playwright, _browser, _page
+    if _browser:
+        _browser.close()
+    if _playwright:
+        _playwright.stop()
+    _page = None
+    _browser = None
+    _playwright = None
+
+
 def collect_images(soup: BeautifulSoup) -> None:
-    """Harvest all Squarespace CDN image URLs from a page."""
     cdn_hosts = ("images.squarespace-cdn.com", "static1.squarespace.com")
 
     for tag in soup.find_all("img"):
@@ -91,7 +111,6 @@ def clean_text(text: str) -> str:
 
 
 def get_jsonld(soup: BeautifulSoup) -> dict:
-    """Return the first JSON-LD block that has a datePublished field."""
     for tag in soup.find_all("script", type="application/ld+json"):
         try:
             data = json.loads(tag.string or "")
@@ -103,18 +122,10 @@ def get_jsonld(soup: BeautifulSoup) -> dict:
 
 
 def extract_hero_image(soup: BeautifulSoup) -> str | None:
-    """
-    Get the recipe/post hero image. Squarespace lazy-loads: real URL is in
-    data-src / data-image; the src attribute is often just the CDN base path.
-    We check lazy-load attrs first, then src, and require a full path (must
-    have at least one path segment beyond the space ID).
-    """
     cdn_host = "images.squarespace-cdn.com"
-    # Squarespace space ID prefix — base URL without image filename is not useful
     space_prefix = re.compile(r"images\.squarespace-cdn\.com/content/v1/[^/]+/[^/]+/")
 
     for tag in soup.find_all("img"):
-        # Prefer lazy-load attributes over src (which may be a placeholder)
         for attr in ("data-src", "data-image", "src"):
             val = tag.get(attr, "")
             if cdn_host in val and "Logo" not in val and space_prefix.search(val):
@@ -123,7 +134,6 @@ def extract_hero_image(soup: BeautifulSoup) -> str | None:
 
 
 def extract_category(soup: BeautifulSoup) -> str | None:
-    """Return the Squarespace blog category (e.g. 'Recipe')."""
     el = soup.select_one(".blog-meta-item--categories, .blog-item-category-wrapper")
     if el:
         return clean_text(el.get_text())
@@ -131,7 +141,6 @@ def extract_category(soup: BeautifulSoup) -> str | None:
 
 
 def extract_tags(soup: BeautifulSoup) -> list[str]:
-    """Return Squarespace blog tags (e.g. ['Dinner'])."""
     tags = []
     for el in soup.select(".blog-item-tag"):
         t = clean_text(el.get_text())
@@ -141,26 +150,18 @@ def extract_tags(soup: BeautifulSoup) -> list[str]:
 
 
 def extract_full_date(soup: BeautifulSoup) -> str:
-    """
-    Return ISO-8601 date string. Squarespace JSON-LD has the full year;
-    the visible <time> element only shows 'Jan 22' without a year.
-    """
     ld = get_jsonld(soup)
     if ld.get("datePublished"):
-        # e.g. "2025-01-22T16:13:32-0500" → "2025-01-22"
         return ld["datePublished"][:10]
-    # Fallback: visible date text has no year, use a placeholder
     el = soup.select_one(".dt-published, time")
     if el:
         dt = el.get("datetime") or el.get_text(strip=True)
-        # If it's already ISO-like (YYYY-MM-DD) use it
         if re.match(r"\d{4}-\d{2}-\d{2}", dt):
             return dt[:10]
     return ""
 
 
 def extract_excerpt(soup: BeautifulSoup, jsonld: dict) -> str:
-    """Try og:description or JSON-LD headline as excerpt."""
     og = soup.find("meta", property="og:description")
     if og and og.get("content"):
         return clean_text(og["content"])
@@ -171,7 +172,6 @@ def extract_excerpt(soup: BeautifulSoup, jsonld: dict) -> str:
 
 
 def scrape_post(url: str) -> dict | None:
-    """Scrape a single blog post / recipe page."""
     soup = fetch(url)
     if not soup:
         return None
@@ -190,7 +190,6 @@ def scrape_post(url: str) -> dict | None:
     hero_image = extract_hero_image(soup)
     excerpt = extract_excerpt(soup, jsonld)
 
-    # Full post body — use .blog-item-content which has the structured content
     content_el = soup.select_one(".blog-item-content")
     body_html = str(content_el) if content_el else ""
     body_text = clean_text(content_el.get_text(" ")) if content_el else ""
@@ -220,7 +219,6 @@ def scrape_static_page(url: str, page_id: str) -> dict | None:
     h1 = soup.find("h1")
     title = clean_text(h1.get_text()) if h1 else page_id
 
-    # Grab the main content area
     main = soup.select_one("main, #page, .page-section")
     body_html = str(main) if main else ""
     body_text = clean_text(main.get_text(" ")) if main else ""
@@ -235,7 +233,6 @@ def scrape_static_page(url: str, page_id: str) -> dict | None:
 
 
 def discover_post_urls(soup: BeautifulSoup, base: str) -> list[str]:
-    """Find all /blog/{slug} links that are actual posts (not category pages)."""
     urls = []
     for a in soup.find_all("a", href=True):
         href = a["href"]
@@ -244,8 +241,21 @@ def discover_post_urls(soup: BeautifulSoup, base: str) -> list[str]:
         if parsed.netloc not in ("www.catalinaskitchen.com", "catalinaskitchen.com"):
             continue
         path = parsed.path.rstrip("/")
-        # /blog/{slug} only — skip index, category, tag pages
         if re.match(r"^/blog/[^/]+$", path) and not path.startswith("/blog/category"):
+            urls.append(full.split("?")[0].split("#")[0])
+    return list(set(urls))
+
+
+def discover_meal_plan_urls(soup: BeautifulSoup, base: str) -> list[str]:
+    urls = []
+    for a in soup.find_all("a", href=True):
+        href = a["href"]
+        full = urljoin(base, href)
+        parsed = urlparse(full)
+        if parsed.netloc not in ("www.catalinaskitchen.com", "catalinaskitchen.com"):
+            continue
+        path = parsed.path.rstrip("/")
+        if re.match(r"^/meal-plans/[^/]+$", path):
             urls.append(full.split("?")[0].split("#")[0])
     return list(set(urls))
 
@@ -259,86 +269,95 @@ def get_next_page_url(soup: BeautifulSoup, current_url: str) -> str | None:
 
 
 def classify_post(item: dict) -> str:
-    """Decide if a post is a recipe, meal plan, or blog post."""
     slug = item.get("slug", "").lower()
     tags = [t.lower() for t in item.get("tags", [])]
     category = (item.get("category") or "").lower()
 
     if "meal-plan" in slug or "mealplan" in slug or "meal plan" in " ".join(tags):
         return "meal_plans"
-    if "recipe" in category or any(t in tags for t in ("dinner","breakfast","dessert","sides","sauce","salsa","lunch")):
+    if "recipe" in category or any(t in tags for t in ("dinner", "breakfast", "dessert", "sides", "sauce", "salsa", "lunch")):
         return "recipes"
     return "blog_posts"
 
 
 def main() -> None:
-    print("=== Catalina's Kitchen Scraper ===\n")
+    print("=== Catalina's Kitchen Scraper (Playwright) ===\n")
 
-    # ── Static pages ─────────────────────────────────────────────────────────
-    static_pages = [
-        ("https://www.catalinaskitchen.com", "home"),
-        ("https://www.catalinaskitchen.com/recipes", "recipes-index"),
-        ("https://www.catalinaskitchen.com/contact", "contact"),
-        ("https://www.catalinaskitchen.com/privacy-policy", "privacy-policy"),
-    ]
-    print("[1/4] Scraping static pages...")
-    for url, page_id in static_pages:
-        print(f"  {url}")
-        page = scrape_static_page(url, page_id)
-        if page:
-            content["pages"].append(page)
-        time.sleep(1)
+    try:
+        # ── Static pages ──────────────────────────────────────────────────────
+        static_pages = [
+            ("https://www.catalinaskitchen.com", "home"),
+            ("https://www.catalinaskitchen.com/recipes", "recipes-index"),
+            ("https://www.catalinaskitchen.com/contact", "contact"),
+            ("https://www.catalinaskitchen.com/privacy-policy", "privacy-policy"),
+        ]
+        print("[1/4] Scraping static pages...")
+        for url, page_id in static_pages:
+            print(f"  {url}")
+            page = scrape_static_page(url, page_id)
+            if page:
+                content["pages"].append(page)
 
-    # ── Discover all post URLs ────────────────────────────────────────────────
-    print("\n[2/4] Discovering post URLs...")
-    all_post_urls: set[str] = set()
-    visited: set[str] = set()
+        # ── Discover blog post URLs ───────────────────────────────────────────
+        print("\n[2/4] Discovering blog post URLs...")
+        all_post_urls: set[str] = set()
+        visited: set[str] = set()
 
-    for index_url in [
-        "https://www.catalinaskitchen.com/blog",
-        "https://www.catalinaskitchen.com/blog-1",
-    ]:
-        current_url: str | None = index_url
-        while current_url:
-            if current_url in visited:
-                break
-            visited.add(current_url)
-            soup = fetch(current_url)
-            if not soup:
-                break
-            found = discover_post_urls(soup, current_url)
-            new = set(found) - all_post_urls
-            print(f"  {current_url} → {len(new)} new post URLs")
-            all_post_urls.update(found)
-            current_url = get_next_page_url(soup, current_url)
-            time.sleep(1)
+        for index_url in [
+            "https://www.catalinaskitchen.com/blog",
+            "https://www.catalinaskitchen.com/blog-1",
+        ]:
+            current_url: str | None = index_url
+            while current_url:
+                if current_url in visited:
+                    break
+                visited.add(current_url)
+                soup = fetch(current_url)
+                if not soup:
+                    break
+                found = discover_post_urls(soup, current_url)
+                new = set(found) - all_post_urls
+                print(f"  {current_url} → {len(new)} new post URLs")
+                all_post_urls.update(found)
+                current_url = get_next_page_url(soup, current_url)
 
-    print(f"  Total post URLs: {len(all_post_urls)}")
+        print(f"  Total blog URLs: {len(all_post_urls)}")
 
-    # ── Meal plans ───────────────────────────────────────────────────────────
-    print("\n[3/4] Checking meal plan pages...")
-    for mp_url in [
-        "https://www.catalinaskitchen.com/meal-plans",
-        "https://www.catalinaskitchen.com/meal-plans/current",
-        "https://www.catalinaskitchen.com/meal-plans/previous",
-    ]:
-        soup = fetch(mp_url)
-        if soup:
-            collect_images(soup)
-            for url in discover_post_urls(soup, mp_url):
-                all_post_urls.add(url)
-        time.sleep(1)
+        # ── Discover meal plan URLs ───────────────────────────────────────────
+        print("\n[3/4] Discovering meal plan URLs...")
+        meal_plan_urls: set[str] = set()
+        for mp_url in [
+            "https://www.catalinaskitchen.com/meal-plans",
+            "https://www.catalinaskitchen.com/meal-plans/current",
+            "https://www.catalinaskitchen.com/meal-plans/previous",
+        ]:
+            soup = fetch(mp_url)
+            if soup:
+                collect_images(soup)
+                found = discover_meal_plan_urls(soup, mp_url)
+                new = set(found) - meal_plan_urls
+                print(f"  {mp_url} → {len(new)} meal plan URLs")
+                meal_plan_urls.update(found)
 
-    # ── Scrape each post ─────────────────────────────────────────────────────
-    print(f"\n[4/4] Scraping {len(all_post_urls)} posts...")
-    for url in sorted(all_post_urls):
-        print(f"  {url}")
-        item = scrape_post(url)
-        if not item:
-            continue
-        bucket = classify_post(item)
-        content[bucket].append(item)
-        time.sleep(1.2)
+        print(f"  Total meal plan URLs: {len(meal_plan_urls)}")
+
+        # ── Scrape each post ──────────────────────────────────────────────────
+        all_urls = sorted(all_post_urls | meal_plan_urls)
+        print(f"\n[4/4] Scraping {len(all_urls)} posts...")
+        for url in all_urls:
+            print(f"  {url}")
+            item = scrape_post(url)
+            if not item:
+                continue
+            # Force meal plan classification for /meal-plans/ URLs
+            if "/meal-plans/" in url:
+                bucket = "meal_plans"
+            else:
+                bucket = classify_post(item)
+            content[bucket].append(item)
+
+    finally:
+        close_browser()
 
     # ── Write outputs ─────────────────────────────────────────────────────────
     print("\nWriting output files...")

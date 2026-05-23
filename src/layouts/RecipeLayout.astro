@@ -11,22 +11,19 @@ interface Props {
 
 const { recipe } = Astro.props;
 const { title, slug, excerpt, category, publishedDate, featuredImage, ingredients, instructions } = recipe.fields;
+const authorName = (recipe.fields.author as any)?.fields?.name as string | undefined;
 
 const imageUrl = getImageUrl(featuredImage as any);
 const ingredientsHtml = ingredients ? documentToHtmlString(ingredients as any) : "";
 const instructionsHtml = instructions ? documentToHtmlString(instructions as any) : "";
 
-// Structured data — Recipe schema (site currently lacks this; migration improvement)
 const recipeSchema = {
   "@context": "https://schema.org",
   "@type": "Recipe",
   "name": title,
   "description": excerpt ?? "",
   "image": imageUrl ? [imageUrl] : [],
-  "author": {
-    "@type": "Person",
-    "name": "Jaime Esquivel",
-  },
+  ...(authorName ? { "author": { "@type": "Person", "name": authorName } } : {}),
   "datePublished": publishedDate,
   "recipeCategory": category,
   "recipeIngredient": [],
@@ -40,7 +37,7 @@ const recipeSchema = {
   ogImage={imageUrl}
   articleMeta={{
     publishedTime: publishedDate as string,
-    author: "Jaime Esquivel",
+    author: authorName,
     section: category as string,
   }}
 >
@@ -54,7 +51,7 @@ const recipeSchema = {
       <h1 class="font-display text-4xl md:text-5xl mt-2 mb-4">{title}</h1>
       {excerpt && <p class="text-lg text-[#2a2a2a] leading-relaxed">{excerpt}</p>}
       <p class="text-sm text-[#2a2a2a] mt-3">
-        By Jaime Esquivel &middot;{" "}
+        {authorName && <span>By {authorName} &middot;{" "}</span>}
         {new Date(publishedDate as string).toLocaleDateString("en-US", {
           year: "numeric",
           month: "long",

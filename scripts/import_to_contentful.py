@@ -20,6 +20,7 @@ Run AFTER scrape.py and download_images.sh:
 The script is idempotent — re-running will skip entries whose slug already exists.
 """
 
+import html as html_lib
 import json
 import mimetypes
 import os
@@ -27,6 +28,15 @@ import re
 import sys
 import time
 from pathlib import Path
+
+from bs4 import BeautifulSoup
+
+# Load .env from repo root
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).parent.parent / ".env")
+except ImportError:
+    pass
 
 try:
     import contentful_management
@@ -60,88 +70,97 @@ env = space.environments().find(ENVIRONMENT)
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def entry_exists(content_type: str, slug: str) -> bool:
-    items = env.entries().all({"content_type": content_type, "fields.slug[en-US]": slug})
+    items = env.entries().all({"content_type": content_type, "fields.slug": slug})
     return len(items) > 0
 
 
-def upload_image(image_path: Path, title: str) -> str | None:
-    """Upload a local image and return its asset ID, or None on failure."""
-    if not image_path.exists():
+def create_asset_from_url(url: str, title: str) -> str | None:
+    """Create a Contentful asset from a CDN URL and return its asset ID."""
+    if not url:
         return None
-    mime, _ = mimetypes.guess_type(str(image_path))
+    filename = url.rstrip("/").split("/")[-1].split("?")[0]
+    mime, _ = mimetypes.guess_type(filename)
     mime = mime or "image/jpeg"
     try:
-        with open(image_path, "rb") as f:
-            upload = env.uploads().create(f)
         asset_attrs = {
             "fields": {
                 "title": {"en-US": title},
                 "file": {
                     "en-US": {
-                        "fileName": image_path.name,
+                        "fileName": filename,
                         "contentType": mime,
-                        "uploadFrom": {
-                            "sys": {"type": "Link", "linkType": "Upload", "id": upload.id}
-                        },
+                        "upload": url,
                     }
                 },
             }
         }
         asset = env.assets().create(None, asset_attrs)
         asset.process()
-        time.sleep(2)
+        time.sleep(3)
         asset = env.assets().find(asset.id)
         asset.publish()
-        print(f"    Uploaded asset: {image_path.name} → {asset.id}")
+        print(f"    Asset: {filename} → {asset.id}")
         return asset.id
     except Exception as e:
-        print(f"    WARN: failed to upload {image_path}: {e}")
+        print(f"    WARN: failed to create asset from {url}: {e}")
         return None
 
 
-def html_to_contentful_richtext(html: str) -> dict:
-    """Convert raw HTML to a minimal Contentful RichText document."""
-    from html.parser import HTMLParser
+def html_to_contentful_richtext(raw_html: str) -> dict:
+    """Convert raw HTML to a Contentful RichText document, stripping Squarespace junk."""
+    soup = BeautifulSoup(raw_html, "html.parser")
+    for tag in soup(["script", "style"]):
+        tag.decompose()
 
-    class _Parser(HTMLParser):
-        def __init__(self):
-            super().__init__()
-            self.nodes: list[dict] = []
-            self._current_text: list[str] = []
-            self._in_block = False
+    HEADING_MAP = {
+        "h1": "heading-1", "h2": "heading-2", "h3": "heading-3",
+        "h4": "heading-4", "h5": "heading-5", "h6": "heading-6",
+    }
+    CONTAINERS = {"div", "section", "article", "main", "header", "footer",
+                  "figure", "blockquote", "form", "nav", "aside"}
 
-        def _flush(self):
-            text = "".join(self._current_text).strip()
-            if text:
-                self.nodes.append({
-                    "nodeType": "paragraph",
-                    "data": {},
-                    "content": [{"nodeType": "text", "value": text, "marks": [], "data": {}}],
-                })
-            self._current_text = []
+    def text_node(value: str) -> dict:
+        return {"nodeType": "text", "value": value.strip(), "marks": [], "data": {}}
 
-        def handle_data(self, data):
-            self._current_text.append(data)
+    def para(text: str) -> dict:
+        return {"nodeType": "paragraph", "data": {}, "content": [text_node(text)]}
 
-        def handle_endtag(self, tag):
-            if tag in ("p", "li", "h2", "h3", "br"):
-                self._flush()
+    nodes: list[dict] = []
 
-        def get_document(self):
-            self._flush()
-            return {
-                "nodeType": "document",
-                "data": {},
-                "content": self.nodes or [{
-                    "nodeType": "paragraph",
-                    "data": {},
-                    "content": [{"nodeType": "text", "value": "", "marks": [], "data": {}}],
-                }],
-            }
+    def process(el) -> None:
+        for child in el.children:
+            if not hasattr(child, "name") or child.name is None:
+                continue
+            name = child.name.lower()
+            if name in HEADING_MAP:
+                text = child.get_text(" ", strip=True)
+                if text:
+                    nodes.append({"nodeType": HEADING_MAP[name], "data": {},
+                                  "content": [text_node(text)]})
+            elif name == "p":
+                text = child.get_text(" ", strip=True)
+                if text:
+                    nodes.append(para(text))
+            elif name in ("ul", "ol"):
+                list_type = "unordered-list" if name == "ul" else "ordered-list"
+                items = []
+                for li in child.find_all("li", recursive=False):
+                    li_text = li.get_text(" ", strip=True)
+                    if li_text:
+                        items.append({"nodeType": "list-item", "data": {},
+                                      "content": [para(li_text)]})
+                if items:
+                    nodes.append({"nodeType": list_type, "data": {}, "content": items})
+            elif name in CONTAINERS:
+                process(child)
 
-    parser = _Parser()
-    parser.feed(html)
-    return parser.get_document()
+    process(soup)
+
+    return {
+        "nodeType": "document",
+        "data": {},
+        "content": nodes or [para("")],
+    }
 
 
 def image_path_for_url(url: str) -> Path | None:
@@ -237,8 +256,8 @@ def ensure_content_types() -> None:
 
 # ── Import ────────────────────────────────────────────────────────────────────
 
-def ensure_author(name: str = "Jaime Esquivel") -> str:
-    items = env.entries().all({"content_type": "author", "fields.name[en-US]": name})
+def ensure_author(name: str = "Katelyn Esquivel") -> str:
+    items = env.entries().all({"content_type": "author", "fields.name": name})
     if items:
         return items[0].id
     entry = env.entries().create(None, {
@@ -250,35 +269,67 @@ def ensure_author(name: str = "Jaime Esquivel") -> str:
     return entry.id
 
 
+def category_from_tags(tags: list[str]) -> str:
+    tl = [t.lower() for t in tags]
+    if any(t in tl for t in ("sauces", "salsas", "sauce", "salsa")):
+        return "sauces"
+    if "breakfast" in tl:
+        return "breakfast"
+    if "dessert" in tl:
+        return "dessert"
+    if any(t in tl for t in ("sides", "side")):
+        return "sides"
+    return "dinner"
+
+
+def floor_date(date_str: str, minimum: str = "2024-01-01") -> str:
+    if not re.match(r"\d{4}-\d{2}-\d{2}", date_str or ""):
+        return minimum
+    return date_str[:10] if date_str[:10] >= minimum else minimum
+
+
+def delete_all_of_type(content_type: str) -> None:
+    print(f"  Deleting existing {content_type} entries...")
+    try:
+        items = env.entries().all({"content_type": content_type, "limit": 1000})
+    except Exception:
+        return
+    for item in items:
+        try:
+            try:
+                item.unpublish()
+            except Exception:
+                pass
+            item.delete()
+        except Exception as e:
+            print(f"    WARN: could not delete {item.id}: {e}")
+
+
 def import_recipes(recipes: list, author_id: str) -> None:
+    delete_all_of_type("recipe")
     print(f"\nImporting {len(recipes)} recipes...")
     for item in recipes:
         slug = slugify(item.get("slug") or item.get("title", "untitled"))
-        if entry_exists("recipe", slug):
-            print(f"  ✓ skip (exists): {slug}")
-            continue
 
-        img_path = image_path_for_url(item.get("hero_image_url", ""))
-        asset_id = upload_image(img_path, item.get("title", slug)) if img_path else None
+        hero_url = item.get("hero_image_url", "")
+        asset_id = create_asset_from_url(hero_url, item.get("title", slug)) if hero_url else None
 
         body_html = item.get("body_html", "")
         ingredients_doc = html_to_contentful_richtext(body_html)
         instructions_doc = html_to_contentful_richtext(body_html)
 
-        category = (item.get("category") or "").lower()
-        if category not in ("dinner", "sides", "sauces", "breakfast", "dessert"):
-            category = "dinner"
-
-        date_str = item.get("published_date", "")
-        if not re.match(r"\d{4}-\d{2}-\d{2}", date_str):
-            date_str = "2024-01-01"
-        else:
-            date_str = date_str[:10]
+        category = category_from_tags(item.get("tags", []))
+        date_str = floor_date(item.get("published_date", ""))
+        title = html_lib.unescape(item.get("title") or slug)
+        excerpt = html_lib.unescape(item.get("excerpt") or "")
+        # Strip excerpts that are just the ingredient list dumped by Squarespace meta
+        if excerpt.lower().startswith("ingredients"):
+            excerpt = ""
 
         fields: dict = {
-            "title":         {"en-US": item.get("title", slug)},
+            "title":         {"en-US": title},
             "slug":          {"en-US": slug},
-            "excerpt":       {"en-US": item.get("excerpt", "")},
+            "excerpt":       {"en-US": excerpt},
             "category":      {"en-US": category},
             "publishedDate": {"en-US": date_str},
             "ingredients":   {"en-US": ingredients_doc},
@@ -287,43 +338,36 @@ def import_recipes(recipes: list, author_id: str) -> None:
         }
         if asset_id:
             fields["featuredImage"] = {"en-US": {"sys": {"type": "Link", "linkType": "Asset", "id": asset_id}}}
-        if author_id:
-            fields["author"] = {"en-US": {"sys": {"type": "Link", "linkType": "Entry", "id": author_id}}}
 
         try:
             entry = env.entries().create(None, {"content_type_id": "recipe", "fields": fields})
             entry.publish()
-            print(f"  + {slug}")
+            print(f"  + {slug} [{category}]")
         except Exception as e:
             print(f"  WARN: failed to create recipe {slug}: {e}")
         time.sleep(0.5)
 
 
 def import_meal_plans(plans: list) -> None:
+    delete_all_of_type("mealPlan")
     print(f"\nImporting {len(plans)} meal plans...")
     for item in plans:
         slug = slugify(item.get("slug") or item.get("title", "meal-plan"))
-        if entry_exists("mealPlan", slug):
-            print(f"  ✓ skip (exists): {slug}")
-            continue
 
-        img_path = image_path_for_url(item.get("hero_image_url", ""))
-        asset_id = upload_image(img_path, item.get("title", slug)) if img_path else None
+        hero_url = item.get("hero_image_url", "")
+        asset_id = create_asset_from_url(hero_url, item.get("title", slug)) if hero_url else None
 
         content_doc = html_to_contentful_richtext(item.get("body_html", ""))
 
-        date_str = item.get("published_date", "2024-01-01")
-        if not re.match(r"\d{4}-\d{2}-\d{2}", date_str):
-            date_str = "2024-01-01"
-        else:
-            date_str = date_str[:10]
+        date_str = floor_date(item.get("published_date", ""))
+        title = html_lib.unescape(item.get("title") or slug)
 
         fields: dict = {
-            "title":    {"en-US": item.get("title", slug)},
-            "slug":     {"en-US": slug},
-            "weekOf":   {"en-US": date_str},
+            "title":     {"en-US": title},
+            "slug":      {"en-US": slug},
+            "weekOf":    {"en-US": date_str},
             "isCurrent": {"en-US": False},
-            "content":  {"en-US": content_doc},
+            "content":   {"en-US": content_doc},
         }
         if asset_id:
             fields["featuredImage"] = {"en-US": {"sys": {"type": "Link", "linkType": "Asset", "id": asset_id}}}
@@ -388,7 +432,7 @@ def main() -> None:
 
     ensure_content_types()
 
-    author_id = ensure_author("Jaime Esquivel")
+    author_id = ensure_author("Katelyn Esquivel")
 
     import_recipes(scraped.get("recipes", []), author_id)
     import_meal_plans(scraped.get("meal_plans", []))

@@ -29,7 +29,7 @@ const imageUrl = getImageUrl(post.fields.featuredImage as any);
   ogImage={imageUrl}
   articleMeta={{
     publishedTime: post.fields.publishedDate as string,
-    author: "Jaime Esquivel",
+    author: (post.fields.author as any)?.fields?.name as string | undefined,
     section: "Blog",
   }}
 >

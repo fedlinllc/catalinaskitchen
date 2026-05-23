@@ -1,22 +1,10 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import RecipeCard from "../../components/RecipeCard.astro";
-import { getAllRecipes, getRecipesByCategory, RECIPE_CATEGORIES } from "../../lib/contentful";
+import { getAllRecipes } from "../../lib/contentful";
 
-const { category } = Astro.url.searchParams
-  ? Object.fromEntries(Astro.url.searchParams)
-  : {};
+const recipes = await getAllRecipes();
 
-const validCategory = RECIPE_CATEGORIES.find((c) => c.id === category)?.id;
-const recipes = validCategory
-  ? await getRecipesByCategory(validCategory)
-  : await getAllRecipes();
-
-const categoryLabel = validCategory
-  ? RECIPE_CATEGORIES.find((c) => c.id === validCategory)?.label
-  : undefined;
-
-// Hardcoded category tiles with downloaded images
 const categoryTiles = [
   { id: "breakfast", label: "Breakfast",      img: "/images/screen-shot-2024-08-21-at-6.33.12-pm.png" },
   { id: "dinner",    label: "Dinner",          img: "/images/screenshot-2025-01-22-at-3.29.30-pm.png" },
@@ -27,63 +15,84 @@ const categoryTiles = [
 ---
 
 <BaseLayout
-  title={categoryLabel ? `${categoryLabel} Recipes` : "All Recipes"}
+  title="All Recipes"
   description="Browse all recipes — dinner, sides, sauces, breakfast, and dessert. Healthy, multicultural, flavor-packed cooking."
 >
   <div class="max-w-6xl mx-auto px-4 py-12">
 
-    <!-- Page header -->
     <div class="text-center mb-10">
-      <h1 class="font-display text-4xl md:text-5xl text-[#0a0a0a] mb-3">
-        {categoryLabel ? `${categoryLabel} Recipes` : "All Recipes"}
-      </h1>
+      <h1 class="font-display text-4xl md:text-5xl text-[#0a0a0a] mb-3">All Recipes</h1>
       <p class="text-[#2a2a2a] max-w-xl mx-auto">
         Discover flavorful, healthy recipes inspired by cuisines from around the world.
       </p>
     </div>
 
-    <!-- Category tiles (shown when no category filter active) -->
-    {!validCategory && (
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-12">
-        {categoryTiles.map(({ id, label, img }) => (
-          <a
-            href={`/recipes?category=${id}`}
-            class="group relative rounded-2xl overflow-hidden aspect-square block shadow-sm hover:shadow-md transition-shadow"
-          >
-            <img
-              src={img}
-              alt={label}
-              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              loading="lazy"
-            />
-            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-            <span class="absolute bottom-3 left-0 right-0 text-center text-white font-semibold text-sm drop-shadow">
-              {label}
-            </span>
-          </a>
-        ))}
-      </div>
-    )}
-
-    <!-- Back link when filtering -->
-    {validCategory && (
-      <div class="mb-8">
-        <a href="/recipes" class="text-sm text-[#111111] hover:underline">← All Recipes</a>
-      </div>
-    )}
+    <!-- Category filter tiles -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-12">
+      {categoryTiles.map(({ id, label, img }) => (
+        <button
+          data-filter={id}
+          class="group relative rounded-2xl overflow-hidden aspect-square shadow-sm hover:shadow-md transition-all cursor-pointer border-2 border-transparent focus:outline-none"
+          aria-pressed="false"
+        >
+          <img
+            src={img}
+            alt={label}
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            loading="lazy"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          <span class="absolute bottom-3 left-0 right-0 text-center text-white font-semibold text-sm drop-shadow">
+            {label}
+          </span>
+        </button>
+      ))}
+    </div>
 
     <!-- Recipe grid -->
     {recipes.length > 0 ? (
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div id="recipe-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {recipes.map((recipe) => (
-          <RecipeCard recipe={recipe} />
+          <div data-category={recipe.fields.category as string}>
+            <RecipeCard recipe={recipe} />
+          </div>
         ))}
       </div>
+      <p id="no-results" class="hidden text-center text-[#2a2a2a] py-20">No recipes found in this category.</p>
     ) : (
-      <p class="text-center text-[#2a2a2a] py-20">
-        Recipes coming soon. Check back after the Contentful import.
-      </p>
+      <p class="text-center text-[#2a2a2a] py-20">Recipes coming soon.</p>
     )}
 
   </div>
 </BaseLayout>
+
+<script>
+  const buttons = document.querySelectorAll<HTMLButtonElement>("[data-filter]");
+  const cards   = document.querySelectorAll<HTMLElement>("[data-category]");
+  const noResults = document.getElementById("no-results");
+  let active: string | null = null;
+
+  function applyFilter(filter: string | null) {
+    active = filter;
+    let visible = 0;
+    cards.forEach((card) => {
+      const show = !filter || card.dataset.category === filter;
+      card.style.display = show ? "" : "none";
+      if (show) visible++;
+    });
+    noResults?.classList.toggle("hidden", visible > 0);
+    buttons.forEach((btn) => {
+      const isActive = btn.dataset.filter === filter;
+      btn.setAttribute("aria-pressed", String(isActive));
+      btn.classList.toggle("ring-2",          isActive);
+      btn.classList.toggle("ring-[#0a0a0a]",  isActive);
+      btn.classList.toggle("border-[#0a0a0a]", isActive);
+    });
+  }
+
+  buttons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      applyFilter(active === btn.dataset.filter ? null : btn.dataset.filter!);
+    });
+  });
+</script>

@@ -1,5 +1,7 @@
 import { createClient } from "contentful";
 import type { Asset, EntryFieldTypes, EntrySkeletonType } from "contentful";
+import { blogFixtures } from "../data/blog-fixtures";
+import { mealPlanFixtures } from "../data/meal-plan-fixtures";
 
 // ── Content type skeletons ────────────────────────────────────────────────────
 
@@ -112,7 +114,7 @@ export async function getRecipeBySlug(slug: string) {
 
 export async function getAllMealPlans() {
   const client = getClient();
-  if (!client) return [];
+  if (!client) return mealPlanFixtures as any[];
   const entries = await client.getEntries<MealPlanSkeleton>({
     content_type: "mealPlan",
     order: ["-fields.weekOf"],
@@ -123,7 +125,7 @@ export async function getAllMealPlans() {
 
 export async function getCurrentMealPlan() {
   const client = getClient();
-  if (!client) return null;
+  if (!client) return (mealPlanFixtures.find((p) => p.fields.isCurrent) ?? null) as any;
   const entries = await client.getEntries<MealPlanSkeleton>({
     content_type: "mealPlan",
     "fields.isCurrent": true,
@@ -135,7 +137,7 @@ export async function getCurrentMealPlan() {
 
 export async function getMealPlanBySlug(slug: string) {
   const client = getClient();
-  if (!client) return null;
+  if (!client) return (mealPlanFixtures.find((p) => p.fields.slug === slug) ?? null) as any;
   const entries = await client.getEntries<MealPlanSkeleton>({
     content_type: "mealPlan",
     "fields.slug": slug,
@@ -149,7 +151,7 @@ export async function getMealPlanBySlug(slug: string) {
 
 export async function getAllBlogPosts() {
   const client = getClient();
-  if (!client) return [];
+  if (!client) return blogFixtures as any[];
   const entries = await client.getEntries<BlogPostSkeleton>({
     content_type: "blogPost",
     order: ["-fields.publishedDate"],
@@ -161,7 +163,7 @@ export async function getAllBlogPosts() {
 
 export async function getBlogPostBySlug(slug: string) {
   const client = getClient();
-  if (!client) return null;
+  if (!client) return (blogFixtures.find((p) => p.fields.slug === slug) ?? null) as any;
   const entries = await client.getEntries<BlogPostSkeleton>({
     content_type: "blogPost",
     "fields.slug": slug,
