@@ -315,8 +315,52 @@ def import_recipes(recipes: list, author_id: str) -> None:
         asset_id = create_asset_from_url(hero_url, item.get("title", slug)) if hero_url else None
 
         body_html = item.get("body_html", "")
-        ingredients_doc = html_to_contentful_richtext(body_html)
-        instructions_doc = html_to_contentful_richtext(body_html)
+        full_doc  = html_to_contentful_richtext(body_html)
+        nodes     = full_doc.get("content", [])
+
+        def _para(text: str) -> dict:
+            return {"nodeType": "paragraph", "data": {},
+                    "content": [{"nodeType": "text", "value": text, "marks": [], "data": {}}]}
+
+        def _split_steps(text: str) -> list[str]:
+            if len(text) < 60:
+                return [text]
+            parts = re.split(r'(?<=[a-z\d,\)])\. (?=[A-Z])', text)
+            parts = [p.strip() for p in parts if p.strip()]
+            result = []
+            for i, p in enumerate(parts):
+                if i < len(parts) - 1 and p[-1] not in ".!?":
+                    p += "."
+                result.append(p)
+            return result if len(result) > 1 else [text]
+
+        list_nodes = [n for n in nodes if n.get("nodeType") == "unordered-list"]
+
+        # Collect instruction paragraphs and split each at sentence boundaries
+        raw_steps: list[str] = []
+        for n in nodes:
+            if n.get("nodeType") == "paragraph":
+                text = "".join(
+                    t.get("value", "") for t in n.get("content", [])
+                    if t.get("nodeType") == "text"
+                ).strip()
+                if text:
+                    raw_steps.extend(_split_steps(text))
+
+        ingredients_doc = {
+            "nodeType": "document", "data": {},
+            "content": list_nodes if list_nodes else full_doc["content"],
+        }
+        if raw_steps:
+            instructions_doc = {
+                "nodeType": "document", "data": {},
+                "content": [{"nodeType": "ordered-list", "data": {},
+                              "content": [{"nodeType": "list-item", "data": {},
+                                           "content": [_para(s)]}
+                                          for s in raw_steps]}],
+            }
+        else:
+            instructions_doc = full_doc
 
         category = category_from_tags(item.get("tags", []))
         date_str = floor_date(item.get("published_date", ""))

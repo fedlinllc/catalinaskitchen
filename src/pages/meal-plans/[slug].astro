@@ -17,51 +17,71 @@ if (!plan) {
   return Astro.redirect("/meal-plans", 301);
 }
 
-const contentHtml = plan.fields.content
-  ? documentToHtmlString(plan.fields.content as any)
-  : "";
+const title = plan.fields.title as string;
+const weekOf = plan.fields.weekOf as string;
+const isCurrent = plan.fields.isCurrent as boolean;
+const contentHtml = plan.fields.content ? documentToHtmlString(plan.fields.content as any) : "";
 const imageUrl = getImageUrl(plan.fields.featuredImage as any);
+
+const [y, m, d] = weekOf.slice(0, 10).split("-").map(Number);
+const formattedWeek = new Date(y, m - 1, d).toLocaleDateString("en-US", {
+  month: "long",
+  day: "numeric",
+  year: "numeric",
+});
 ---
 
 <BaseLayout
-  title={plan.fields.title as string}
-  description={`Meal plan for the week of ${new Date(plan.fields.weekOf as string).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.`}
+  title={title}
+  description={`Meal plan for the week of ${formattedWeek}.`}
   ogImage={imageUrl}
 >
-  <article class="max-w-3xl mx-auto px-4 py-12">
-    <div class="mb-2">
-      {plan.fields.isCurrent && (
-        <span class="inline-block bg-[#3d4435] text-white text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full mr-2">
-          Current Week
-        </span>
-      )}
-      <span class="text-sm text-[#2a2a2a]">
-        Week of {new Date(plan.fields.weekOf as string).toLocaleDateString("en-US", {
-          month: "long",
-          day: "numeric",
-          year: "numeric",
-        })}
-      </span>
-    </div>
-
-    <h1 class="font-display text-4xl md:text-5xl mt-2 mb-8">{plan.fields.title}</h1>
+  <article>
+    <!-- Hero -->
+    <section class="bg-gradient-to-b from-[#e7d9cb] to-white py-14">
+      <div class="max-w-3xl mx-auto px-4 sm:px-6">
+        <nav class="mb-6">
+          <a href="/meal-plans" class="inline-flex items-center gap-1.5 text-sm text-[#3d4435] hover:underline font-medium">
+            ← All Meal Plans
+          </a>
+        </nav>
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+          {isCurrent && (
+            <span class="inline-block bg-[#3d4435] text-white text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full">
+              Current Week
+            </span>
+          )}
+          <span class="text-sm text-[#2a2a2a]">Week of {formattedWeek}</span>
+        </div>
+        <h1 class="font-display text-4xl md:text-5xl leading-tight">{title}</h1>
+      </div>
+    </section>
 
     {imageUrl && (
-      <img
-        src={imageUrl}
-        alt={plan.fields.title as string}
-        class="w-full rounded-2xl object-cover mb-10"
-        style="aspect-ratio: 16/9;"
-        loading="eager"
-      />
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 -mt-6 mb-12">
+        <img
+          src={imageUrl}
+          alt={title}
+          class="w-full rounded-2xl object-cover shadow-sm"
+          style="aspect-ratio: 16/9;"
+          loading="eager"
+        />
+      </div>
     )}
 
-    <div class="prose-catalina" set:html={contentHtml} />
+    <section class="pb-16">
+      <div class="max-w-3xl mx-auto px-4 sm:px-6">
+        <div class="prose-catalina" set:html={contentHtml} />
 
-    <div class="mt-12 pt-6 border-t border-[#d4c8bc]">
-      <a href="/meal-plans" class="text-[#111111] hover:underline text-sm font-medium">
-        ← All Meal Plans
-      </a>
-    </div>
+        <div class="mt-12 pt-6 border-t border-[#d4c8bc] flex flex-wrap gap-4 items-center">
+          <a href="/meal-plans" class="text-[#3d4435] hover:underline text-sm font-medium">
+            ← All Meal Plans
+          </a>
+          <a href="/recipes" class="text-[#3d4435] hover:underline text-sm font-medium ml-auto">
+            Browse Recipes →
+          </a>
+        </div>
+      </div>
+    </section>
   </article>
 </BaseLayout>
