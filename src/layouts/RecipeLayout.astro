@@ -17,6 +17,36 @@ const imageUrl = getImageUrl(featuredImage as any);
 const ingredientsHtml = ingredients ? documentToHtmlString(ingredients as any) : "";
 const instructionsHtml = instructions ? documentToHtmlString(instructions as any) : "";
 
+function nodeText(node: any): string {
+  if (node.nodeType === "text") return node.value ?? "";
+  return (node.content ?? []).map(nodeText).join("");
+}
+
+function schemaIngredients(doc: any): string[] {
+  if (!doc?.content) return [];
+  const out: string[] = [];
+  for (const block of doc.content) {
+    if (block.nodeType === "unordered-list" || block.nodeType === "ordered-list") {
+      for (const item of block.content ?? []) {
+        const t = nodeText(item).trim();
+        if (t) out.push(t);
+      }
+    } else {
+      const t = nodeText(block).trim();
+      if (t) out.push(t);
+    }
+  }
+  return out;
+}
+
+function schemaSteps(doc: any): { "@type": string; text: string }[] {
+  if (!doc?.content) return [];
+  return (doc.content as any[])
+    .map((block) => nodeText(block).trim())
+    .filter(Boolean)
+    .map((text) => ({ "@type": "HowToStep", text }));
+}
+
 const recipeSchema = {
   "@context": "https://schema.org",
   "@type": "Recipe",
@@ -26,8 +56,8 @@ const recipeSchema = {
   ...(authorName ? { "author": { "@type": "Person", "name": authorName } } : {}),
   "datePublished": publishedDate,
   "recipeCategory": category,
-  "recipeIngredient": [],
-  "recipeInstructions": [],
+  "recipeIngredient": schemaIngredients(ingredients),
+  "recipeInstructions": schemaSteps(instructions),
 };
 ---
 

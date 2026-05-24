@@ -366,7 +366,7 @@ def import_meal_plans(plans: list) -> None:
             "title":     {"en-US": title},
             "slug":      {"en-US": slug},
             "weekOf":    {"en-US": date_str},
-            "isCurrent": {"en-US": False},
+            "isCurrent": {"en-US": bool(item.get("is_current", False))},
             "content":   {"en-US": content_doc},
         }
         if asset_id:

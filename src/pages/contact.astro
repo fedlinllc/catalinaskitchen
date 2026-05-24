@@ -1,73 +1,17 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import NewsletterSignup from "../components/NewsletterSignup";
 ---
 
 <BaseLayout
   title="Contact"
-  description="Get in touch with Catalina's Kitchen — recipe questions, ingredient substitutions, or just to say hello."
+  description="Contact form coming soon. Catalina's Kitchen — recipe questions, ingredient substitutions, and more."
   noindex={true}
 >
-  <div class="max-w-2xl mx-auto px-4 py-16">
-    <div class="text-center mb-12">
-      <h1 class="font-display text-4xl mb-4">Get in Touch</h1>
-      <p class="text-[#2a2a2a]">
-        Questions about a recipe? Need an ingredient substitution for allergies or dietary needs?
-        I'd love to help.
-      </p>
-    </div>
-
-    <form
-      name="contact"
-      method="POST"
-      data-netlify="true"
-      class="bg-[#f2ece4] border border-[#d4c8bc] rounded-2xl p-8 flex flex-col gap-5"
-    >
-      <div>
-        <label for="name" class="block text-sm font-medium text-[#0a0a0a] mb-1">Name</label>
-        <input
-          id="name"
-          name="name"
-          type="text"
-          required
-          class="w-full px-4 py-2 rounded-lg border border-[#d4c8bc] bg-white text-[#0a0a0a] focus:outline-none focus:ring-2 focus:ring-[#111111]"
-        />
-      </div>
-
-      <div>
-        <label for="email" class="block text-sm font-medium text-[#0a0a0a] mb-1">Email</label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          required
-          class="w-full px-4 py-2 rounded-lg border border-[#d4c8bc] bg-white text-[#0a0a0a] focus:outline-none focus:ring-2 focus:ring-[#111111]"
-        />
-      </div>
-
-      <div>
-        <label for="message" class="block text-sm font-medium text-[#0a0a0a] mb-1">Message</label>
-        <textarea
-          id="message"
-          name="message"
-          rows="5"
-          required
-          class="w-full px-4 py-2 rounded-lg border border-[#d4c8bc] bg-white text-[#0a0a0a] focus:outline-none focus:ring-2 focus:ring-[#111111] resize-none"
-        ></textarea>
-      </div>
-
-      <button
-        type="submit"
-        class="bg-[#111111] hover:bg-[#333333] text-white font-medium px-7 py-3 rounded-xl transition-colors self-start"
-      >
-        Send Message
-      </button>
-    </form>
-
-    <div class="mt-16 text-center">
-      <h2 class="font-display text-2xl mb-3">Never Miss a Recipe</h2>
-      <p class="text-[#2a2a2a] mb-6">Subscribe to get new recipes delivered to your inbox.</p>
-      <NewsletterSignup client:load />
-    </div>
+  <div class="max-w-2xl mx-auto px-4 py-24 text-center">
+    <p class="text-[#111111] uppercase tracking-widest text-xs font-semibold mb-4">Coming Soon</p>
+    <h1 class="font-display text-4xl mb-4">Get in Touch</h1>
+    <p class="text-[#2a2a2a] max-w-md mx-auto leading-relaxed">
+      A contact form is on the way. Check back soon.
+    </p>
   </div>
 </BaseLayout>
